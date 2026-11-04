@@ -1,0 +1,86 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AM00710 · HIOKI Power Quality Analyzer PW3198 - Sofraco</title><meta name="robots" content="noindex">
+<link rel="icon" href="../../../logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--deep:#051233;--blue:#2878F5;--grey:#828C96;--panel:#F2F7FF;--rule:#C9D6EA;--ink:#0B1220;--red:#C62828;--bg:#fff}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.35}
+.mono{font-family:'JetBrains Mono',ui-monospace,Consolas,monospace}
+header{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.96);border-bottom:1px solid var(--rule)}
+.hd{max-width:1180px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.hd img{height:26px;width:auto}
+.hd .t{text-align:right;min-width:0}
+.hd h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--deep);text-transform:uppercase}
+.hd .sub{font-size:10px;letter-spacing:.14em;color:var(--grey);text-transform:uppercase}
+main{max-width:1180px;margin:0 auto;padding:18px 16px 40px}
+.crumb{font-size:12px;margin:0 0 14px}.crumb a{color:var(--blue);text-decoration:none}
+.sec{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--deep);padding-bottom:6px;margin:26px 0 12px;gap:8px}
+.sec h2{margin:0;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:600}
+.sec span{font-size:11px;color:var(--grey)}
+.bins{display:grid;gap:16px}
+@media(min-width:900px){.bins{grid-template-columns:repeat(var(--n),1fr)}}
+.bin{border:1px solid var(--rule)}
+.binhd{background:var(--deep);color:#fff;font-weight:700;letter-spacing:.12em;padding:8px 12px;text-transform:uppercase;font-size:13px}
+.shelf{border-top:1px solid var(--rule);padding:8px}
+.shelf:nth-child(odd){background:var(--panel)}
+.shelf>a.sh{display:flex;justify-content:space-between;align-items:center;text-decoration:none;color:var(--deep);font-weight:700;font-size:13px;margin:0 2px 6px}
+.shelf>a.sh small{color:var(--blue);font-weight:600}
+.slots{display:grid;grid-template-columns:repeat(var(--p),minmax(0,1fr));gap:6px}
+.slot{background:#fff;border:1px solid var(--rule);padding:6px;display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
+.slot .ph{height:64px;width:100%;display:flex;align-items:flex-end;justify-content:center}
+.slot .ph img{max-height:64px;max-width:100%;object-fit:contain}
+.code{color:var(--blue);font-weight:800}
+.slot .code{font-size:14px;margin-top:4px}
+.ref{font-weight:700;font-size:11px}
+.desc{font-size:10.5px;color:#333;overflow-wrap:break-word;hyphens:auto}
+.free{color:var(--grey);font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin:auto 0}
+.draw{width:100%;height:100%;color:var(--deep)}
+.slot .draw{height:64px}
+/* shelf page */
+.strip{display:grid;grid-template-columns:repeat(var(--p),1fr);gap:6px;border:1px solid var(--rule);padding:8px;background:var(--panel)}
+.strip a{display:block;text-align:center;padding:10px 0;border:1.5px solid var(--deep);background:#fff;color:var(--deep);text-decoration:none;font-weight:800}
+.strip a.empty{border-style:dashed;color:var(--grey)}
+.cards{display:grid;gap:12px}
+@media(min-width:700px){.cards{grid-template-columns:repeat(2,1fr)}}
+.card{border:1px solid var(--rule);padding:14px;display:flex;gap:14px;align-items:center;scroll-margin-top:70px}
+.card .ph{flex:0 0 120px;height:120px;display:flex;align-items:center;justify-content:center}
+.card .ph img{max-width:120px;max-height:120px;object-fit:contain}
+.card .code{font-size:24px;line-height:1}
+.card .ref{font-size:15px;margin-top:4px}
+.card .desc{font-size:14px;margin-top:4px}
+.card .mm{font-size:12px;color:var(--grey);margin-top:4px}
+.metrics{display:flex;gap:16px;margin-top:8px}
+.metrics div{display:flex;flex-direction:column}.metrics b{font-size:18px}.metrics span{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--grey)}
+.low b,.low span{color:var(--red)}
+.card.free{border-style:dashed;justify-content:center;color:var(--grey)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--deep);color:#fff;text-align:left;padding:6px 8px;font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+td{border-bottom:1px solid var(--rule);padding:6px 8px;vertical-align:top}
+tr:nth-child(even) td{background:var(--panel)}
+td.c{white-space:nowrap}td a{color:var(--blue);font-weight:700;text-decoration:none}
+.note{border:1px solid var(--rule);background:var(--panel);padding:12px;font-size:13px}
+.idx a{display:flex;justify-content:space-between;border:1px solid var(--rule);padding:14px;margin-bottom:8px;text-decoration:none;color:var(--deep);font-weight:700}
+.plain{text-decoration:none;color:inherit}.slot>a.plain{display:flex;flex-direction:column;align-items:center;width:100%}
+.slot .ref a{color:var(--ink);text-decoration:none}
+.more{font-size:12px;color:var(--blue);font-weight:600;margin-top:8px}
+.hero{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.hero .ph{flex:0 0 200px;height:200px;display:flex;align-items:center;justify-content:center}
+.hero .ph img{max-width:200px;max-height:200px;object-fit:contain}
+.hero .code{font-size:30px}.hero .desc{font-size:17px;margin-top:6px}
+dl.spec{display:grid;grid-template-columns:max-content 1fr;margin:0;border:1px solid var(--rule)}
+dl.spec dt,dl.spec dd{margin:0;padding:8px 10px;border-bottom:1px solid var(--rule)}
+dl.spec dt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);background:var(--panel)}
+.badge{display:inline-block;padding:2px 8px;font-size:12px;font-weight:700;border-radius:2px;background:var(--panel);color:var(--deep)}
+.badge.ok{background:#E3F4E8;color:#1B6B34}.badge.bad{background:#FDE7E7;color:var(--red)}
+a.btn{display:block;text-align:center;background:var(--deep);color:#fff;text-decoration:none;font-weight:700;padding:14px;margin-top:10px}
+a.btn.alt{background:#fff;color:var(--deep);border:1.5px solid var(--deep)}
+.hint{font-size:11px;color:var(--grey);margin-top:6px}
+footer{max-width:1180px;margin:0 auto;padding:14px 16px 30px;border-top:1px solid var(--rule);font-size:11px;color:var(--grey);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+</style></head><body>
+<header><div class="hd"><img src="../../../logo.png" alt="Sofraco"><div class="t"><h1>AM00710</h1><div class="sub mono">Lab Equipment Storage</div></div></div></header>
+<main><p class="crumb mono"><a href="../../2-4/">‹ Shelf 2.4</a> &nbsp; <a href="../../">Whole layout</a></p><div class="hero"><div class="ph"><img src="../../img/2.4.2_AM00710.webp" alt="HIOKI Power Quality Analyzer PW3198" loading="lazy"></div><div><div class="code mono">2.4.2</div><div class="ref mono">AM00710</div><div class="desc">HIOKI Power Quality Analyzer PW3198</div></div></div><div class="sec"><h2 class="mono">01 / Specifications</h2></div><dl class="spec"><dt>Location</dt><dd><a href="../../2-4/#p2" class="mono">2.4.2</a> · Cabinet 2, Shelf 4</dd><dt>Asset No</dt><dd><b class="mono">AM00710</b></dd><dt>Description</dt><dd>Hioki Power Quality Analyser</dd><dt>Make</dt><dd>Hioki</dd><dt>Model</dt><dd>PW3198</dd><dt>Serial No</dt><dd><span class="mono">140830369</span></dd><dt>Specifications</dt><dd>5000Amp</dd><dt>Category</dt><dd>Measurement Equipment / Electrical</dd><dt>Status</dt><dd><span class="badge ok">Active</span></dd><dt>Whereabouts</dt><dd>Workshop</dd><dt>Requirement</dt><dd>Calibration</dd></dl><div class="sec"><h2 class="mono">02 / Calibration</h2></div><dl class="spec"><dt>Calibrated</dt><dd>14/03/2026</dd><dt>Due</dt><dd><span class="badge ok">14/03/2027</span></dd><dt>Certified by</dt><dd>TR Calibration</dd><dt>Frequency</dt><dd>12 Month</dd></dl><a class="btn" href="https://sofraco.sharepoint.com/sites/AssetManagement/Lists/Asset%20Register/Attachments/2662/CAL_AM00710_EXP_13-03-2027.pdf">Open calibration certificate</a><div class="hint mono">CAL_AM00710_EXP_13-03-2027.pdf · opens with your Sofraco sign-in</div><div class="sec"><h2 class="mono">03 / Documents</h2></div><a class="btn alt" href="https://sofraco.sharepoint.com/sites/AssetManagement/Shared Documents/01. Assets/AM00710">Manuals, datasheets &amp; all certificates</a><div class="hint">Asset folder in SharePoint · opens with your Sofraco sign-in</div></main>
+<footer><span>Sofraco Engineering Systems</span><span class="mono">Updated 05/11/2026 07:31</span></footer>
+</body></html>

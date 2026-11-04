@@ -63,9 +63,24 @@ tr:nth-child(even) td{background:var(--panel)}
 td.c{white-space:nowrap}td a{color:var(--blue);font-weight:700;text-decoration:none}
 .note{border:1px solid var(--rule);background:var(--panel);padding:12px;font-size:13px}
 .idx a{display:flex;justify-content:space-between;border:1px solid var(--rule);padding:14px;margin-bottom:8px;text-decoration:none;color:var(--deep);font-weight:700}
+.plain{text-decoration:none;color:inherit}.slot>a.plain{display:flex;flex-direction:column;align-items:center;width:100%}
+.slot .ref a{color:var(--ink);text-decoration:none}
+.more{font-size:12px;color:var(--blue);font-weight:600;margin-top:8px}
+.hero{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.hero .ph{flex:0 0 200px;height:200px;display:flex;align-items:center;justify-content:center}
+.hero .ph img{max-width:200px;max-height:200px;object-fit:contain}
+.hero .code{font-size:30px}.hero .desc{font-size:17px;margin-top:6px}
+dl.spec{display:grid;grid-template-columns:max-content 1fr;margin:0;border:1px solid var(--rule)}
+dl.spec dt,dl.spec dd{margin:0;padding:8px 10px;border-bottom:1px solid var(--rule)}
+dl.spec dt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);background:var(--panel)}
+.badge{display:inline-block;padding:2px 8px;font-size:12px;font-weight:700;border-radius:2px;background:var(--panel);color:var(--deep)}
+.badge.ok{background:#E3F4E8;color:#1B6B34}.badge.bad{background:#FDE7E7;color:var(--red)}
+a.btn{display:block;text-align:center;background:var(--deep);color:#fff;text-decoration:none;font-weight:700;padding:14px;margin-top:10px}
+a.btn.alt{background:#fff;color:var(--deep);border:1.5px solid var(--deep)}
+.hint{font-size:11px;color:var(--grey);margin-top:6px}
 footer{max-width:1180px;margin:0 auto;padding:14px 16px 30px;border-top:1px solid var(--rule);font-size:11px;color:var(--grey);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 </style></head><body>
 <header><div class="hd"><img src="../../logo.png" alt="Sofraco"><div class="t"><h1>Shelf 2.4</h1><div class="sub mono">Lab Equipment Storage</div></div></div></header>
-<main><p class="crumb mono"><a href="../">‹ Whole Lab Equipment Storage layout</a></p><div class="sec"><h2 class="mono">01 / Shelf positions</h2><span class="mono">Bin 2 · Shelf 4</span></div><div class="strip" style="--p:2"><a class="mono" href="#p1">2.4.1</a><a class="mono" href="#p2">2.4.2</a></div><div class="sec"><h2 class="mono">02 / What belongs here</h2><span class="mono">2 items</span></div><div class="cards"><article class="card" id=p1><div class="ph"><img src="../img/2.4.1_AM00131.webp" alt="FLIR E6390 Thermal Imaging Camera" loading="lazy"></div><div><div class="code mono">2.4.1</div><div class="ref mono">Asset No: AM00131</div><div class="desc">FLIR E6390 Thermal Imaging Camera</div><div class=mm>FLIR E6390</div></div></article><article class="card" id=p2><div class="ph"><img src="../img/2.4.2_AM00710.webp" alt="HIOKI Power Quality Analyzer PW3198" loading="lazy"></div><div><div class="code mono">2.4.2</div><div class="ref mono">Asset No: AM00710</div><div class="desc">HIOKI Power Quality Analyzer PW3198</div><div class=mm>HIOKI PW3198</div></div></article></div></main>
-<footer><span>Sofraco Engineering Systems</span><span class="mono">Updated 04/11/2026 15:52</span></footer>
+<main><p class="crumb mono"><a href="../">‹ Whole Lab Equipment Storage layout</a></p><div class="sec"><h2 class="mono">01 / Shelf positions</h2><span class="mono">Cabinet 2 · Shelf 4</span></div><div class="strip" style="--p:2"><a class="mono" href="#p1">2.4.1</a><a class="mono" href="#p2">2.4.2</a></div><div class="sec"><h2 class="mono">02 / What belongs here</h2><span class="mono">2 items</span></div><div class="cards"><a class="card plain" href="../asset/AM00131/" id=p1><div class="ph"><img src="../img/2.4.1_AM00131.webp" alt="FLIR E6390 Thermal Imaging Camera" loading="lazy"></div><div><div class="code mono">2.4.1</div><div class="ref mono">Asset No: AM00131</div><div class="desc">FLIR E6390 Thermal Imaging Camera</div><div class=mm>FLIR E6390</div><div class=more>Specifications &amp; calibration ›</div></div></a><a class="card plain" href="../asset/AM00710/" id=p2><div class="ph"><img src="../img/2.4.2_AM00710.webp" alt="HIOKI Power Quality Analyzer PW3198" loading="lazy"></div><div><div class="code mono">2.4.2</div><div class="ref mono">Asset No: AM00710</div><div class="desc">HIOKI Power Quality Analyzer PW3198</div><div class=mm>HIOKI PW3198</div><div class=more>Specifications &amp; calibration ›</div></div></a></div></main>
+<footer><span>Sofraco Engineering Systems</span><span class="mono">Updated 05/11/2026 07:31</span></footer>
 </body></html>
