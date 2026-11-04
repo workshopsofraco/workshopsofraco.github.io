@@ -1,0 +1,71 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lab Equipment Storage · Shelf 2.5 - Sofraco</title><meta name="robots" content="noindex">
+<link rel="icon" href="../../logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--deep:#051233;--blue:#2878F5;--grey:#828C96;--panel:#F2F7FF;--rule:#C9D6EA;--ink:#0B1220;--red:#C62828;--bg:#fff}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.35}
+.mono{font-family:'JetBrains Mono',ui-monospace,Consolas,monospace}
+header{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.96);border-bottom:1px solid var(--rule)}
+.hd{max-width:1180px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.hd img{height:26px;width:auto}
+.hd .t{text-align:right;min-width:0}
+.hd h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--deep);text-transform:uppercase}
+.hd .sub{font-size:10px;letter-spacing:.14em;color:var(--grey);text-transform:uppercase}
+main{max-width:1180px;margin:0 auto;padding:18px 16px 40px}
+.crumb{font-size:12px;margin:0 0 14px}.crumb a{color:var(--blue);text-decoration:none}
+.sec{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--deep);padding-bottom:6px;margin:26px 0 12px;gap:8px}
+.sec h2{margin:0;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:600}
+.sec span{font-size:11px;color:var(--grey)}
+.bins{display:grid;gap:16px}
+@media(min-width:900px){.bins{grid-template-columns:repeat(var(--n),1fr)}}
+.bin{border:1px solid var(--rule)}
+.binhd{background:var(--deep);color:#fff;font-weight:700;letter-spacing:.12em;padding:8px 12px;text-transform:uppercase;font-size:13px}
+.shelf{border-top:1px solid var(--rule);padding:8px}
+.shelf:nth-child(odd){background:var(--panel)}
+.shelf>a.sh{display:flex;justify-content:space-between;align-items:center;text-decoration:none;color:var(--deep);font-weight:700;font-size:13px;margin:0 2px 6px}
+.shelf>a.sh small{color:var(--blue);font-weight:600}
+.slots{display:grid;grid-template-columns:repeat(var(--p),minmax(0,1fr));gap:6px}
+.slot{background:#fff;border:1px solid var(--rule);padding:6px;display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
+.slot .ph{height:64px;width:100%;display:flex;align-items:flex-end;justify-content:center}
+.slot .ph img{max-height:64px;max-width:100%;object-fit:contain}
+.code{color:var(--blue);font-weight:800}
+.slot .code{font-size:14px;margin-top:4px}
+.ref{font-weight:700;font-size:11px}
+.desc{font-size:10.5px;color:#333;overflow-wrap:break-word;hyphens:auto}
+.free{color:var(--grey);font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin:auto 0}
+.draw{width:100%;height:100%;color:var(--deep)}
+.slot .draw{height:64px}
+/* shelf page */
+.strip{display:grid;grid-template-columns:repeat(var(--p),1fr);gap:6px;border:1px solid var(--rule);padding:8px;background:var(--panel)}
+.strip a{display:block;text-align:center;padding:10px 0;border:1.5px solid var(--deep);background:#fff;color:var(--deep);text-decoration:none;font-weight:800}
+.strip a.empty{border-style:dashed;color:var(--grey)}
+.cards{display:grid;gap:12px}
+@media(min-width:700px){.cards{grid-template-columns:repeat(2,1fr)}}
+.card{border:1px solid var(--rule);padding:14px;display:flex;gap:14px;align-items:center;scroll-margin-top:70px}
+.card .ph{flex:0 0 120px;height:120px;display:flex;align-items:center;justify-content:center}
+.card .ph img{max-width:120px;max-height:120px;object-fit:contain}
+.card .code{font-size:24px;line-height:1}
+.card .ref{font-size:15px;margin-top:4px}
+.card .desc{font-size:14px;margin-top:4px}
+.card .mm{font-size:12px;color:var(--grey);margin-top:4px}
+.metrics{display:flex;gap:16px;margin-top:8px}
+.metrics div{display:flex;flex-direction:column}.metrics b{font-size:18px}.metrics span{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--grey)}
+.low b,.low span{color:var(--red)}
+.card.free{border-style:dashed;justify-content:center;color:var(--grey)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--deep);color:#fff;text-align:left;padding:6px 8px;font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+td{border-bottom:1px solid var(--rule);padding:6px 8px;vertical-align:top}
+tr:nth-child(even) td{background:var(--panel)}
+td.c{white-space:nowrap}td a{color:var(--blue);font-weight:700;text-decoration:none}
+.note{border:1px solid var(--rule);background:var(--panel);padding:12px;font-size:13px}
+.idx a{display:flex;justify-content:space-between;border:1px solid var(--rule);padding:14px;margin-bottom:8px;text-decoration:none;color:var(--deep);font-weight:700}
+footer{max-width:1180px;margin:0 auto;padding:14px 16px 30px;border-top:1px solid var(--rule);font-size:11px;color:var(--grey);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+</style></head><body>
+<header><div class="hd"><img src="../../logo.png" alt="Sofraco"><div class="t"><h1>Shelf 2.5</h1><div class="sub mono">Lab Equipment Storage</div></div></div></header>
+<main><p class="crumb mono"><a href="../">‹ Whole Lab Equipment Storage layout</a></p><div class="sec"><h2 class="mono">01 / Shelf positions</h2><span class="mono">Bin 2 · Shelf 5</span></div><div class="strip" style="--p:2"><a class="mono" href="#p1">2.5.1</a><a class="mono" href="#p2">2.5.2</a></div><div class="sec"><h2 class="mono">02 / What belongs here</h2><span class="mono">3 items</span></div><div class="cards"><article class="card" id=p1><div class="ph"><img src="../img/2.5.1_AM00521.webp" alt="SKF Microlog Analyzer GX" loading="lazy"></div><div><div class="code mono">2.5.1</div><div class="ref mono">Asset No: AM00521</div><div class="desc">SKF Microlog Analyzer GX</div><div class=mm>SKF CMXA 75 GX</div></div></article><article class="card" id=p2><div class="ph"><img src="../img/2.5.2_AM00089.webp" alt="ALTAIR 5X Multigas Detector" loading="lazy"></div><div><div class="code mono">2.5.2</div><div class="ref mono">Asset No: AM00089</div><div class="desc">ALTAIR 5X Multigas Detector</div><div class=mm>MSA ALTAIR 5X</div></div></article><article class="card"><div class="ph"><img src="../img/2.5.2_AM00091.webp" alt="ALTAIR 5X Multigas Detector" loading="lazy"></div><div><div class="code mono">2.5.2</div><div class="ref mono">Asset No: AM00091</div><div class="desc">ALTAIR 5X Multigas Detector</div><div class=mm>MSA ALTAIR 5X</div></div></article></div></main>
+<footer><span>Sofraco Engineering Systems</span><span class="mono">Updated 04/11/2026 15:52</span></footer>
+</body></html>
