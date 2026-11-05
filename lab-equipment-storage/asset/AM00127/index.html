@@ -88,6 +88,60 @@ a.btn.alt,button.btn.alt{background:#fff;color:var(--deep);border:1.5px solid va
 footer{max-width:1180px;margin:0 auto;padding:14px 16px 30px;border-top:1px solid var(--rule);font-size:11px;color:var(--grey);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 </style></head><body>
 <header><div class="hd"><img src="../../../logo.png" alt="Sofraco"><div class="t"><h1>AM00127</h1><div class="sub mono">Lab Equipment Storage</div></div></div></header>
-<main><p class="crumb mono"><a href="../../2-3/">‹ Shelf 2.3</a> &nbsp; <a href="../../">Whole layout</a></p><div class="hero"><div class="ph"><img src="../../img/AM00127_OEM.webp" alt="Beamex EXT600 External Pressure Sensor" loading="lazy"></div><div><div class="code mono">2.3.2</div><div class="ref mono">AM00127</div><div class="desc">Beamex EXT600 External Pressure Sensor</div></div></div><div class="sec"><h2 class="mono">01 / Specifications</h2></div><dl class="spec"><dt>Location</dt><dd><a href="../../2-3/#p2" class="mono">2.3.2</a> · Cabinet 2, Shelf 3</dd><dt>Asset No</dt><dd><b class="mono">AM00127</b></dd><dt>Description</dt><dd>Beamex - External Pressure Module</dd><dt>Make</dt><dd>Beamex</dd><dt>Model</dt><dd>EXT600</dd><dt>Serial No</dt><dd><span class="mono">52443</span></dd><dt>Specifications</dt><dd>0-600 bar</dd><dt>Category</dt><dd>Measurement Equipment / Pressure</dd><dt>Status</dt><dd><span class="badge ok">Active</span></dd><dt>Whereabouts</dt><dd>Calibration Facility</dd><dt>Requirement</dt><dd>Calibration NATA</dd></dl><div class="sec"><h2 class="mono">02 / NATA calibration</h2></div><dl class="spec"><dt>Calibrated</dt><dd>18/10/2025</dd><dt>Due</dt><dd><span class="badge bad">18/10/2026 - overdue</span></dd><dt>Certified by</dt><dd>Keysight</dd><dt>Frequency</dt><dd>12 Month</dd></dl><a class="btn" target="_blank" rel="noopener" href="https://sofraco.sharepoint.com/sites/AssetManagement/Lists/Asset%20Register/Attachments/1838/CAL_AM00127_EXP_18-10-2026.pdf">Open calibration certificate</a><div class="hint mono">CAL_AM00127_EXP_18-10-2026.pdf · opens with your Sofraco sign-in</div><div class="sec"><h2 class="mono">03 / Documents</h2></div><a class="btn alt" target="_blank" rel="noopener" href="https://sofraco.sharepoint.com/sites/AssetManagement/Shared Documents/01. Assets/AM00127">Manuals, datasheets &amp; all certificates</a><div class="hint">Asset folder in SharePoint · opens with your Sofraco sign-in</div></main>
-<footer><span>Sofraco Engineering Systems</span><span class="mono">Updated 05/11/2026 14:05</span></footer>
+<main><p class="crumb mono"><a href="../../2-3/">‹ Shelf 2.3</a> &nbsp; <a href="../../">Whole layout</a></p><div class="hero"><div class="ph"><img src="../../img/AM00127_OEM.webp" alt="Beamex EXT600 External Pressure Sensor" loading="lazy"></div><div><div class="code mono">2.3.2</div><div class="ref mono">AM00127</div><div class="desc">Beamex EXT600 External Pressure Sensor</div></div></div><div class="sec"><h2 class="mono">Send it on</h2></div><div id="move" class="mv" data-flow="https://defaultb3fa63e0ca724aee9629da15a41c21.f9.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/07/workflows/b8bfa0b8ccec459797d129e611b4b627/triggers/manual/paths/invoke?api-version=1" data-asset="AM00127" data-client="3dba9759-c18f-411a-ba3c-b213b2f038a9" data-tenant="b3fa63e0-ca72-4aee-9629-da15a41c21f9" data-redirect="https://workshopsofraco.github.io/auth/"><div id="mvst" class="mvmsg"></div><div id="mvlogin" hidden><button id="mvsignin" class="btn" type="button">Sign in with Sofraco</button></div><div id="mvsend" hidden><label>Going to<select id="mvto"><option value="">Choose…</option><option>GI</option><option>SCM</option><option>Workshop</option><option>Calibration Facility</option><option>Other</option></select></label><input id="mvother" maxlength="100" placeholder="Where is it going?" hidden><button id="mvgo" class="btn" type="button">Send it on</button></div><div id="mvdel" hidden><div class="mvroute mono" id="mvroute"></div><label>Received by (blank = you)<input id="mvrecv" maxlength="80" autocomplete="name"></label><label>Signature</label><canvas id="mvsig"></canvas><button id="mvclear" class="btn alt" type="button">Clear signature</button><button id="mvdeliver" class="btn" type="button">Deliver it</button></div></div><script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@4/lib/msal-browser.min.js"></script><script>
+(function(){
+var box=document.getElementById('move');if(!box)return;
+var U=box.dataset.flow,A=box.dataset.asset,st=document.getElementById('mvst');
+var SCOPE=['https://service.flow.microsoft.com//User'],app=null,acct=null;
+function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
+function show(id){['mvlogin','mvsend','mvdel'].forEach(function(x){document.getElementById(x).hidden=(x!==id)})}
+function token(){
+  if(window.MV_TEST_TOKEN)return Promise.resolve(window.MV_TEST_TOKEN);
+  return app.acquireTokenSilent({scopes:SCOPE,account:acct}).then(function(r){return r.accessToken})
+   .catch(function(){return app.acquireTokenRedirect({scopes:SCOPE,account:acct})})}
+function post(o){return token().then(function(t){return fetch(U,{method:'POST',
+  headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify(o)})})
+  .then(function(r){if(r.status===401||r.status===403)throw new Error('auth');return r.json()})}
+function fail(e){msg(e&&e.message==='auth'?'Your sign-in was not accepted. Sign in with your Sofraco account.':'Could not reach the tracker. Nothing was changed.',1)}
+function load(){msg('Checking where it is…');post({action:'status',asset:A}).then(function(r){
+  if(r.ok===false){msg(r.message||'Not available.',1);return}
+  if(!r.found){msg('This asset was not found in the register.',1);return}
+  var who=r.signedInAs?' · signed in as '+r.signedInAs:'';
+  if(r.inTransit){document.getElementById('mvroute').textContent=(r.from||'?')+' → '+(r.to||'?')+(r.isr?' · '+r.isr:'');show('mvdel');msg('In transit - sign below when it arrives'+who)}
+  else{show('mvsend');msg('Currently at: '+(r.whereabouts||'unknown')+who)}
+ }).catch(fail)}
+document.getElementById('mvsignin').onclick=function(){app.loginRedirect({scopes:SCOPE})};
+var to=document.getElementById('mvto'),oth=document.getElementById('mvother');
+to.onchange=function(){oth.hidden=to.value!=='Other'};
+document.getElementById('mvgo').onclick=function(){
+  if(!to.value||(to.value==='Other'&&!oth.value.trim())){msg('Choose where it is going.',1);return}
+  var b=this;b.disabled=true;msg('Sending…');
+  post({action:'send',asset:A,to:to.value,toOther:oth.value.trim().slice(0,100)}).then(function(r){b.disabled=false;
+   if(r.ok){msg('Sent'+(r.isr?' - '+r.isr:'')+'. It now shows as in transit.');setTimeout(load,1500)}else msg(r.message||'Not sent.',1)})
+  .catch(function(e){b.disabled=false;fail(e)})};
+var c=document.getElementById('mvsig'),x=c.getContext('2d'),drawn=false,dn=false;
+function fit(){var r=c.getBoundingClientRect();if(!r.width)return;c.width=r.width*2;c.height=r.height*2;x.setTransform(2,0,0,2,0,0);x.lineWidth=2.2;x.lineCap='round';x.strokeStyle='#051233';drawn=false}
+function pt(e){var r=c.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]}
+c.onpointerdown=function(e){dn=true;c.setPointerCapture(e.pointerId);var p=pt(e);x.beginPath();x.moveTo(p[0],p[1])};
+c.onpointermove=function(e){if(!dn)return;var p=pt(e);x.lineTo(p[0],p[1]);x.stroke();drawn=true};
+c.onpointerup=function(){dn=false};
+document.getElementById('mvclear').onclick=fit;
+document.getElementById('mvdeliver').onclick=function(){
+  if(!drawn){msg('Please sign before confirming the delivery.',1);return}
+  var b=this;b.disabled=true;msg('Recording delivery…');
+  post({action:'deliver',asset:A,name:document.getElementById('mvrecv').value.trim().slice(0,80),signature:c.toDataURL('image/png')}).then(function(r){b.disabled=false;
+   if(r.ok){msg('Delivered. Thank you.');fit();setTimeout(load,1500)}else msg(r.message||'Not recorded.',1)})
+  .catch(function(e){b.disabled=false;fail(e)})};
+new ResizeObserver(fit).observe(c);show('');
+if(window.MV_TEST_TOKEN){load();return}
+app=new msal.PublicClientApplication({auth:{clientId:box.dataset.client,
+  authority:'https://login.microsoftonline.com/'+box.dataset.tenant,redirectUri:box.dataset.redirect},
+  cache:{cacheLocation:'localStorage'}});
+app.initialize().then(function(){return app.handleRedirectPromise()}).then(function(r){
+  acct=(r&&r.account)||app.getAllAccounts()[0]||null;
+  if(acct){app.setActiveAccount(acct);load()}else{show('mvlogin');msg('Sign in with your Sofraco account to send or deliver this asset.')}
+}).catch(function(){show('mvlogin');msg('Sign-in did not finish. Try again.',1)});
+})();
+</script><div class="sec"><h2 class="mono">01 / Specifications</h2></div><dl class="spec"><dt>Location</dt><dd><a href="../../2-3/#p2" class="mono">2.3.2</a> · Cabinet 2, Shelf 3</dd><dt>Asset No</dt><dd><b class="mono">AM00127</b></dd><dt>Description</dt><dd>Beamex - External Pressure Module</dd><dt>Make</dt><dd>Beamex</dd><dt>Model</dt><dd>EXT600</dd><dt>Serial No</dt><dd><span class="mono">52443</span></dd><dt>Specifications</dt><dd>0-600 bar</dd><dt>Category</dt><dd>Measurement Equipment / Pressure</dd><dt>Status</dt><dd><span class="badge ok">Active</span></dd><dt>Whereabouts</dt><dd>Calibration Facility</dd><dt>Requirement</dt><dd>Calibration NATA</dd></dl><div class="sec"><h2 class="mono">02 / NATA calibration</h2></div><dl class="spec"><dt>Calibrated</dt><dd>18/10/2025</dd><dt>Due</dt><dd><span class="badge bad">18/10/2026 - overdue</span></dd><dt>Certified by</dt><dd>Keysight</dd><dt>Frequency</dt><dd>12 Month</dd></dl><a class="btn" target="_blank" rel="noopener" href="https://sofraco.sharepoint.com/sites/AssetManagement/Lists/Asset%20Register/Attachments/1838/CAL_AM00127_EXP_18-10-2026.pdf">Open calibration certificate</a><div class="hint mono">CAL_AM00127_EXP_18-10-2026.pdf · opens with your Sofraco sign-in</div><div class="sec"><h2 class="mono">03 / Documents</h2></div><a class="btn alt" target="_blank" rel="noopener" href="https://sofraco.sharepoint.com/sites/AssetManagement/Shared Documents/01. Assets/AM00127">Manuals, datasheets &amp; all certificates</a><div class="hint">Asset folder in SharePoint · opens with your Sofraco sign-in</div></main>
+<footer><span>Sofraco Engineering Systems</span><span class="mono">Updated 05/11/2026 14:27</span></footer>
 </body></html>
