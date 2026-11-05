@@ -480,7 +480,11 @@ function whenDom(f){if(document.readyState!=='loading')f();else document.addEven
 whenDom(function(){var gb=document.getElementById('gatebtn');if(gb)gb.onclick=function(){gb.disabled=true;signIn()};
   ready.then(function(ok){var g=document.getElementById('gated'),s=document.getElementById('gatescreen');
     if(g)g.hidden=!ok;if(s)s.hidden=ok})});
-return {post:post,signIn:signIn,ready:ready,gate:gate,errText:errText,location:cfg.location};})();
+// Hugo 06/11/2026: pick from a dropdown; a box to type in appears only for "Other..."
+function pick(selId){var s=document.getElementById(selId),o=document.getElementById(selId+'x');
+  if(s&&o)s.addEventListener('change',function(){o.hidden=s.value!=='__other';if(!o.hidden)o.focus()});
+  return function(){return s.value==='__other'?o.value.trim():s.value}}
+return {post:post,signIn:signIn,ready:ready,gate:gate,errText:errText,pick:pick,location:cfg.location};})();
 """
 
 
@@ -525,10 +529,10 @@ function load(){msg('Checking where it is…');SL.post({action:'status',asset:A}
   if(r.inTransit){document.getElementById('mvroute').textContent=(r.from||'?')+' → '+(r.to||'?')+(r.isr?' · '+r.isr:'');show('mvdel');msg('In transit - sign below when it arrives'+who)}
   else{show('mvsend');msg('Currently at: '+(r.whereabouts||'unknown')+who)}
  }).catch(function(e){msg(SL.errText(e),1)})}
-var to=document.getElementById('mvto'),PLACES=['GI','SCM','Workshop','Calibration Facility'];
+var to=SL.pick('mvto'),recv=SL.pick('mvrecv'),PLACES=['GI','SCM','Workshop','Calibration Facility'];
 document.getElementById('mvgo').onclick=function(){
-  var v=to.value.trim(),k=PLACES.filter(function(p){return p.toLowerCase()===v.toLowerCase()})[0];
-  if(!v){msg('Choose or type where it is going.',1);return}
+  var v=to(),k=PLACES.indexOf(v)>=0?v:null;
+  if(!v){msg('Choose where it is going.',1);return}
   var b=this;b.disabled=true;msg('Sending…');
   SL.post(k?{action:'send',asset:A,to:k}:{action:'send',asset:A,to:'Other',toOther:v.slice(0,100)}).then(function(r){b.disabled=false;
    if(r.ok){msg('Sent'+(r.isr?' - '+r.isr:'')+'. It now shows as in transit.');setTimeout(load,1500)}else msg(r.message||'Not sent.',1)})
@@ -543,7 +547,7 @@ document.getElementById('mvclear').onclick=fit;
 document.getElementById('mvdeliver').onclick=function(){
   if(!drawn){msg('Please sign before confirming the delivery.',1);return}
   var b=this;b.disabled=true;msg('Recording delivery…');
-  SL.post({action:'deliver',asset:A,name:document.getElementById('mvrecv').value.trim().slice(0,80),signature:c.toDataURL('image/png')}).then(function(r){b.disabled=false;
+  SL.post({action:'deliver',asset:A,name:recv().slice(0,80),signature:c.toDataURL('image/png')}).then(function(r){b.disabled=false;
    if(r.ok){msg('Delivered. Thank you.');fit();setTimeout(load,1500)}else msg(r.message||'Not recorded.',1)})
   .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
 new ResizeObserver(fit).observe(c);show('');
@@ -556,12 +560,12 @@ SL.gate(box,load);
 BAY_JS = """
 (function(){
 var box=document.getElementById('bay');if(!box)return;
-var A=box.dataset.asset,st=document.getElementById('bayst');
+var A=box.dataset.asset,st=document.getElementById('bayst'),bay=SL.pick('baynew');
 function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
 function done(r){if(r.ok)msg((r.message||'Done')+(r.warning?' Note: '+r.warning:''));else msg(r.message||'Not changed.',1)}
 document.getElementById('baymove').onclick=function(){
-  var v=document.getElementById('baynew').value.trim();
-  if(!/^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/.test(v)){msg('Type the bay as Cabinet.Shelf.Bay, for example 2.3.3.',1);return}
+  var v=bay();
+  if(!/^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/.test(v)){msg(v?'A bay is Cabinet.Shelf.Bay, for example 2.3.3.':'Choose the bay.',1);return}
   var b=this;b.disabled=true;msg('Moving…');
   SL.post({action:'move',asset:A,bay:v,location:SL.location}).then(function(r){b.disabled=false;done(r)})
   .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
@@ -579,15 +583,15 @@ SL.gate(box);
 SHELF_JS = """
 (function(){
 var box=document.getElementById('shelfedit');if(!box)return;
-var st=document.getElementById('shst');
+var st=document.getElementById('shst'),pickBay=SL.pick('shbay');
 function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
 function done(r){if(r.ok)msg((r.message||'Done')+(r.warning?' Note: '+r.warning:''));else msg(r.message||'Not changed.',1)}
 function am(v){v=v.trim().toUpperCase().replace(/\\s+/g,'');if(/^\\d{1,5}$/.test(v))v='AM'+('00000'+v).slice(-5);return v}
 function bayOk(v){return /^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/.test(v)}
 document.getElementById('shadd').onclick=function(){
-  var a=am(document.getElementById('shasset').value),bay=document.getElementById('shbay').value.trim();
+  var a=am(document.getElementById('shasset').value),bay=pickBay();
   if(!/^AM\\d{5}$/.test(a)){msg('Type the asset number, for example AM00869 or just 869.',1);return}
-  if(!bayOk(bay)){msg('Choose the bay, for example '+box.dataset.first+'.',1);return}
+  if(!bayOk(bay)){msg(bay?'A bay is Cabinet.Shelf.Bay, for example '+box.dataset.first+'.':'Choose the bay.',1);return}
   var b=this;b.disabled=true;msg('Adding '+a+'…');
   SL.post({action:'place',location:SL.location,bay:bay,asset:a}).then(function(r){b.disabled=false;done(r)})
   .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
@@ -602,6 +606,17 @@ document.getElementById('shnewbay').onclick=function(){
 SL.gate(box);
 })();
 """
+
+
+def dropdown(i, label, options, other, placeholder, first=None, numeric=False):
+    """A real dropdown (tap and pick); "Other..." reveals a box to type in."""
+    head = first or ("", "Choose…")
+    opts = f'<option value="{esc(head[0])}">{esc(head[1])}</option>' + \
+        "".join(f'<option value="{esc(o)}">{esc(o)}</option>' for o in options) + \
+        f'<option value="__other">{esc(other)}</option>'
+    return (f'<label>{esc(label)}<select id="{i}">{opts}</select></label>'
+            f'<input id="{i}x" hidden maxlength="100" autocomplete="off" placeholder="{esc(placeholder)}"'
+            f'{" inputmode=decimal" if numeric else ""}>')
 
 
 def signers():
@@ -619,14 +634,10 @@ def move_panel(loc, ref):
     return (f'<div class="sec"><h2 class="mono">Send it on</h2></div>'
             f'<div id="move" class="mv" data-asset="{esc(ref)}">{GATE}<div class="inner" hidden>'
             f'<div id="mvst" class="mvmsg"></div>'
-            f'<div id="mvsend" hidden><label>Going to<input id="mvto" list="mvplaces" maxlength="100" autocomplete="off"'
-            f' placeholder="Pick or type a place"></label><datalist id="mvplaces"><option value="GI"><option value="SCM">'
-            f'<option value="Workshop"><option value="Calibration Facility"></datalist>'
+            f'<div id="mvsend" hidden>{dropdown("mvto", "Going to", ["GI", "SCM", "Workshop", "Calibration Facility"], "Other place…", "Type where it is going")}'
             f'<button id="mvgo" class="btn" type="button">Send it on</button></div>'
             f'<div id="mvdel" hidden><div class="mvroute mono" id="mvroute"></div>'
-            f'<label>Received by (blank = you)<input id="mvrecv" list="mvpeople" maxlength="80" autocomplete="off"'
-            f' placeholder="Pick or type a name"></label><datalist id="mvpeople">'
-            f'{"".join(f"<option value=\"{esc(n)}\">" for n in signers())}</datalist>'
+            f'{dropdown("mvrecv", "Received by", signers(), "Someone else…", "Type their name", first=("", "Me (signed in)"))}'
             f'<label>Signature</label><canvas id="mvsig"></canvas>'
             f'<button id="mvclear" class="btn alt" type="button">Clear signature</button>'
             f'<button id="mvdeliver" class="btn" type="button">Deliver it</button></div></div></div>'
@@ -639,9 +650,7 @@ def bay_panel(loc, it, all_bays):
     return (f'<div class="sec"><h2 class="mono">Storage bay</h2><span class="mono">now {esc(it["bin_location"])}</span></div>'
             f'<div id="bay" class="mv" data-asset="{esc(it["ref"])}">{GATE}<div class="inner" hidden>'
             f'<div id="bayst" class="mvmsg"></div>'
-            f'<label>Move to bay<input id="baynew" list="baylist" maxlength="11" autocomplete="off" inputmode="decimal"'
-            f' placeholder="Pick or type, e.g. 2.3.3"></label><datalist id="baylist">'
-            f'{"".join(f"<option value=\"{b}\">" for b in all_bays if b != it["bin_location"])}</datalist>'
+            f'{dropdown("baynew", "Move to bay", [b for b in all_bays if b != it["bin_location"]], "New bay…", "Type the bay, e.g. 2.3.5", numeric=True)}'
             f'<button id="baymove" class="btn" type="button">Move to this bay</button>'
             f'<button id="bayremove" class="btn alt" type="button">Remove from this storage</button></div></div>'
             f'<script>{BAY_JS}</script>')
@@ -657,9 +666,7 @@ def shelf_panel(loc, b, s, slots):
             f'<div id="shelfedit" class="mv" data-next="{nxt}" data-first="{bays[0] if bays else nxt}">{GATE}'
             f'<div class="inner" hidden><div id="shst" class="mvmsg"></div>'
             f'<label>Asset number<input id="shasset" maxlength="12" autocomplete="off" placeholder="e.g. AM00869 or 869"></label>'
-            f'<label>Bay<input id="shbay" list="shbays" maxlength="11" autocomplete="off" inputmode="decimal"'
-            f' placeholder="Pick or type, e.g. {bays[0] if bays else nxt}"></label><datalist id="shbays">'
-            f'{"".join(f"<option value=\"{x}\">" for x in bays)}</datalist>'
+            f'{dropdown("shbay", "Bay", bays, "New bay…", "Type the bay, e.g. " + nxt, numeric=True)}'
             f'<button id="shadd" class="btn" type="button">Add asset to this bay</button>'
             f'<button id="shnewbay" class="btn alt" type="button">Add bay {nxt}</button>'
             f'{"".join(f"<button class=\"btn alt shrm\" type=\"button\" data-bay=\"{x}\">Remove empty bay {x}</button>" for x in empty)}'
@@ -778,9 +785,9 @@ def build():
         if os.path.isdir(out):  # drop shelf pages that no longer exist
             for d in os.listdir(out):
                 if d not in keep and os.path.isdir(os.path.join(out, d)):
-                    shutil.rmtree(os.path.join(out, d))
+                    shutil.rmtree(os.path.join(out, d), ignore_errors=True)
             if os.path.isdir(os.path.join(out, "asset")):
-                shutil.rmtree(os.path.join(out, "asset"))
+                shutil.rmtree(os.path.join(out, "asset"), ignore_errors=True)
         os.makedirs(out, exist_ok=True)
         with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as f:
             f.write(page(loc["title"], loc["title"], loc["subtitle"],
@@ -788,7 +795,7 @@ def build():
         qr = {"cabinet": url_for(base, loc), "shelves": {}}
         qdir = ldir(loc, "qr")
         if os.path.isdir(qdir):
-            shutil.rmtree(qdir)
+            shutil.rmtree(qdir, ignore_errors=True)
         make_qr(qr["cabinet"], os.path.join(qdir, "cabinet.png"))
         for b, shelves in tree.items():
             for s, slots in shelves.items():
