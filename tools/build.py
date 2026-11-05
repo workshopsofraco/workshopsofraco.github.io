@@ -277,7 +277,24 @@ a.btn.alt,button.btn.alt{background:#fff;color:var(--deep);border:1.5px solid va
 .tr{font-size:10.5px;font-weight:800;color:#B45309;margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
 .card .tr{font-size:12px}
 .note.transit{background:#FFF4E5;border-color:#F59E0B;color:#7C2D12;margin-top:12px}
-.mv .gate .btn{margin-top:0}footer{max-width:1180px;margin:0 auto;padding:14px 16px 30px;border-top:1px solid var(--rule);font-size:11px;color:var(--grey);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.mv .gate .btn{margin-top:0}.ed{display:none}
+body.editing .ed{display:inline-block}
+.editbar{display:flex;align-items:center;gap:12px;margin:0 0 10px}.editbar .btn{margin:0;padding:10px 18px;width:auto}
+body.editing .slot{outline:1px dashed var(--blue);outline-offset:-3px}
+body.editing .mini{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.mini.dragging{opacity:.3}.mini.pending{opacity:.55}
+.ghost{position:fixed;z-index:50;pointer-events:none;opacity:.9;box-shadow:0 8px 24px rgba(5,18,51,.35);background:#fff}
+.slot.over,#trash.over{background:#E3EEFF;outline:2px solid var(--blue)}
+.slot .ed{font:inherit;font-size:11px;font-weight:700;color:var(--blue);background:#fff;border:1px solid var(--blue);padding:3px 6px;margin:4px 2px 0;cursor:pointer}
+.slot .rmbay{color:var(--red);border-color:var(--red)}.slot:not(.empty) .rmbay{display:none!important}
+.shelf .addbay{font:inherit;font-size:11px;font-weight:700;color:var(--blue);background:#fff;border:1px solid var(--blue);padding:3px 8px;margin-left:auto;margin-right:8px}
+#trash{position:sticky;bottom:10px;z-index:20;margin:10px 0;padding:14px;text-align:center;font-weight:700;color:var(--red);
+  background:#FFF1F1;border:2px dashed var(--red)}
+body.editing #trash{display:block}
+details.minor{margin-top:22px;border-top:1px solid var(--rule);padding-top:10px}
+details.minor summary{cursor:pointer;color:var(--blue);font-size:13px;font-weight:600}
+details.minor .mv{margin-top:10px}
+footer{max-width:1180px;margin:0 auto;padding:14px 16px 30px;border-top:1px solid var(--rule);font-size:11px;color:var(--grey);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 """
 
 
@@ -321,12 +338,16 @@ def cabinet_body(loc, tree, unplaced, items):
     body = []
     if tree:
         body.append(f'<div class="sec"><h2 class="mono">01 / Layout</h2><span class="mono">{len(tree)} {loc["unit_word"].lower()}s · {n_items} items</span></div>')
-        body.append(f'<div class="bins" style="--n:{len(tree)}">')
+        if live(loc) and loc.get("asset_register"):
+            body.append('<div class="editbar"><button id="editbtn" class="btn alt" type="button">Edit layout</button>'
+                        '<span id="editst" class="mvmsg"></span></div>'
+                        '<div id="trash" class="ed">Drop here to remove from this storage</div>')
+        body.append(f'<div class="bins" id="layout" style="--n:{len(tree)}">')
         for b, shelves in tree.items():
             body.append(f'<section class="bin"><div class="binhd">{loc["unit_word"]} {b}</div>')
             for s, slots in shelves.items():
-                body.append(f'<div class="shelf"><a class="sh" href="../{loc["slug"]}/{shelf_slug(b, s)}/">'
-                            f'<span>Shelf {b}.{s}</span><small>Open shelf ›</small></a>'
+                body.append(f'<div class="shelf" data-next="{b}.{s}.{max(slots) + 1 if slots else 1}"><a class="sh" href="../{loc["slug"]}/{shelf_slug(b, s)}/">'
+                            f'<span>Shelf {b}.{s}</span><button class="ed addbay" type="button">+ bay</button><small>Open shelf ›</small></a>'
                             f'<div class="slots" style="--p:{len(slots)}">')
                 for p, its in slots.items():
                     body.append(slot_cell(loc, b, s, p, its))
@@ -338,6 +359,8 @@ def cabinet_body(loc, tree, unplaced, items):
         body.append('<div class="note">These items are on the list but have no shelf position yet. '
                     'Once each one is given a position (bay.shelf.slot) it appears on the layout above and on its shelf page.</div>')
         body.append(register_table(loc, unplaced, link=False))
+    if tree and live(loc) and loc.get("asset_register"):
+        body.append(f'<script>{EDIT_JS}</script>')
     if tree:
         placed = [i for i in items if i.get("bin_location") and i.get("description")]
         body.append(f'<div class="sec"><h2 class="mono">{"03" if unplaced else "02"} / Register</h2><span class="mono">{len(placed)} rows</span></div>')
@@ -361,7 +384,7 @@ def transit_note(tr):
 
 def mini_card(loc, it, b, s, p):
     href = item_href(loc, it, b, s, p, "")
-    return (f'<a class="mini{" transit" if it.get("transit") else ""}" href="{href}">{photo(loc, it)}'
+    return (f'<a class="mini{" transit" if it.get("transit") else ""}" href="{href}" data-asset="{esc(it["ref"])}">{photo(loc, it)}'
             f'<div class="ref mono">{esc(it["ref"])}</div><div class="desc">{esc(it["description"])}</div>'
             f'{transit_note(it.get("transit"))}</a>')
 
@@ -369,9 +392,11 @@ def mini_card(loc, it, b, s, p):
 def slot_cell(loc, b, s, p, its):
     """Hugo 05/11/2026: each asset in a bay is its own card with its photo."""
     code = f"{b}.{s}.{p}"
+    head = (f'<div class="code mono">{code}</div><button class="ed addhere" type="button" title="Add an asset to {code}">+ asset</button>'
+            f'<button class="ed rmbay" type="button" title="Remove bay {code}">Remove bay</button>')
     if not its:
-        return f'<div class="slot"><div class="code mono">{code}</div><div class="free">Free slot</div></div>'
-    return f'<div class="slot"><div class="code mono">{code}</div>{"".join(mini_card(loc, i, b, s, p) for i in its)}</div>'
+        return f'<div class="slot empty" data-bay="{code}">{head}<div class="free">Free slot</div></div>'
+    return f'<div class="slot" data-bay="{code}">{head}{"".join(mini_card(loc, i, b, s, p) for i in its)}</div>'
 
 
 def register_table(loc, rows, link):
@@ -619,6 +644,61 @@ def dropdown(i, label, options, other, placeholder, first=None, numeric=False):
             f'{" inputmode=decimal" if numeric else ""}>')
 
 
+# Hugo 06/11/2026: rearrange the layout on the cabinet page itself - drag an asset card onto
+# another bay, + to add an asset (or a bay), drag onto Remove to take it off. Pointer events,
+# so a finger on a phone and a mouse on a PC both work. Every change goes through the flow.
+EDIT_JS = """
+(function(){
+var root=document.getElementById('layout'),btn=document.getElementById('editbtn');if(!root||!btn||!window.SL)return;
+var st=document.getElementById('editst'),trash=document.getElementById('trash'),on=false,drag=null;
+function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
+function said(r,ok){if(r.ok)msg((r.message||ok)+(r.warning?' Note: '+r.warning:''));else msg(r.message||'Not changed.',1)}
+function am(v){v=(v||'').trim().toUpperCase().replace(/\\s+/g,'');if(/^\\d{1,5}$/.test(v))v='AM'+('00000'+v).slice(-5);return v}
+btn.onclick=function(){on=!on;document.body.classList.toggle('editing',on);btn.textContent=on?'Done':'Edit layout';
+  msg(on?'Drag an asset onto another bay. + asset adds one, + bay adds a bay.':'')};
+root.addEventListener('click',function(e){if(on&&e.target.closest('a'))e.preventDefault()},true);
+function slotAt(x,y){var el=document.elementFromPoint(x,y);return{slot:el&&el.closest('.slot'),trash:el&&el.closest('#trash')}}
+root.addEventListener('pointerdown',function(e){
+  if(!on)return;var c=e.target.closest('.mini');if(!c)return;e.preventDefault();
+  var r=c.getBoundingClientRect(),g=c.cloneNode(true);g.classList.add('ghost');g.style.width=r.width+'px';document.body.appendChild(g);
+  drag={c:c,g:g,dx:e.clientX-r.left,dy:e.clientY-r.top,from:c.closest('.slot')};c.classList.add('dragging');moveTo(e)});
+function moveTo(e){if(!drag)return;drag.g.style.left=(e.clientX-drag.dx)+'px';drag.g.style.top=(e.clientY-drag.dy)+'px';
+  drag.g.style.visibility='hidden';var h=slotAt(e.clientX,e.clientY);drag.g.style.visibility='';
+  [].forEach.call(document.querySelectorAll('.over'),function(x){x.classList.remove('over')});
+  drag.to=h.slot;drag.trashed=!!h.trash;if(h.slot)h.slot.classList.add('over');if(h.trash)trash.classList.add('over');
+  if(e.clientY<70)window.scrollBy(0,-14);else if(e.clientY>window.innerHeight-70)window.scrollBy(0,14)}
+document.addEventListener('pointermove',moveTo);
+document.addEventListener('pointerup',function(){
+  if(!drag)return;var d=drag;drag=null;d.g.remove();d.c.classList.remove('dragging');
+  [].forEach.call(document.querySelectorAll('.over'),function(x){x.classList.remove('over')});
+  var A=d.c.dataset.asset;
+  if(d.trashed){if(!confirm('Take '+A+' off this storage? It stays in the Asset Register.'))return;
+    d.c.classList.add('pending');msg('Removing '+A+'…');
+    SL.post({action:'remove',asset:A}).then(function(r){said(r,'Removed.');if(r.ok)d.c.remove();else d.c.classList.remove('pending')})
+      .catch(function(e){d.c.classList.remove('pending');msg(SL.errText(e),1)});return}
+  if(!d.to||d.to===d.from)return;
+  var bay=d.to.dataset.bay,free=d.to.querySelector('.free');if(free)free.remove();d.to.classList.remove('empty');
+  d.to.appendChild(d.c);d.c.classList.add('pending');msg('Moving '+A+' to '+bay+'…');
+  SL.post({action:'move',asset:A,bay:bay,location:SL.location}).then(function(r){d.c.classList.remove('pending');said(r,'Moved.');
+      if(!r.ok)d.from.appendChild(d.c)})
+    .catch(function(e){d.c.classList.remove('pending');d.from.appendChild(d.c);msg(SL.errText(e),1)})});
+root.addEventListener('click',function(e){
+  var b=e.target.closest('button.ed');if(!b||!on)return;e.preventDefault();e.stopPropagation();
+  if(b.classList.contains('addhere')){var bay=b.closest('.slot').dataset.bay,A=am(prompt('Asset number to add to bay '+bay+' (e.g. AM00869 or 869)'));
+    if(!A)return;if(!/^AM\\d{5}$/.test(A)){msg('That is not an asset number.',1);return}
+    msg('Adding '+A+' to '+bay+'…');SL.post({action:'place',location:SL.location,bay:bay,asset:A}).then(function(r){said(r,'Added.')})
+      .catch(function(e){msg(SL.errText(e),1)})}
+  else if(b.classList.contains('addbay')){var nb=b.closest('.shelf').dataset.next;msg('Adding bay '+nb+'…');
+    SL.post({action:'addBay',location:SL.location,bay:nb}).then(function(r){said(r,'Bay added.')}).catch(function(e){msg(SL.errText(e),1)})}
+  else if(b.classList.contains('rmbay')){var s=b.closest('.slot');if(s.querySelector('.mini')){msg('Move or remove the assets in '+s.dataset.bay+' first.',1);return}
+    if(!confirm('Remove empty bay '+s.dataset.bay+'?'))return;msg('Removing bay '+s.dataset.bay+'…');
+    SL.post({action:'removeBay',location:SL.location,bay:s.dataset.bay}).then(function(r){said(r,'Bay removed.');if(r.ok)s.classList.add('pending')})
+      .catch(function(e){msg(SL.errText(e),1)})}
+},true);
+})();
+"""
+
+
 def signers():
     """Names offered for 'Received by' - the DSR signer names, as EDT offers them (--refresh updates)."""
     try:
@@ -647,12 +727,12 @@ def move_panel(loc, ref):
 def bay_panel(loc, it, all_bays):
     if not live(loc):
         return ""
-    return (f'<div class="sec"><h2 class="mono">Storage bay</h2><span class="mono">now {esc(it["bin_location"])}</span></div>'
+    return (f'<details class="minor"><summary>Change storage bay <span class="mono">(now {esc(it["bin_location"])})</span></summary>'
             f'<div id="bay" class="mv" data-asset="{esc(it["ref"])}">{GATE}<div class="inner" hidden>'
             f'<div id="bayst" class="mvmsg"></div>'
             f'{dropdown("baynew", "Move to bay", [b for b in all_bays if b != it["bin_location"]], "New bay…", "Type the bay, e.g. 2.3.5", numeric=True)}'
             f'<button id="baymove" class="btn" type="button">Move to this bay</button>'
-            f'<button id="bayremove" class="btn alt" type="button">Remove from this storage</button></div></div>'
+            f'<button id="bayremove" class="btn alt" type="button">Remove from this storage</button></div></div></details>'
             f'<script>{BAY_JS}</script>')
 
 
@@ -746,9 +826,9 @@ def asset_body(loc, it, reg, all_bays):
             f'<div class="ref mono">{esc(it["ref"])}</div><div class="desc">{esc(it["description"])}</div></div></div>'
             f'{transit_banner(it.get("transit"))}'
             f'{move_panel(loc, it["ref"]) if reg else ""}'
-            f'{bay_panel(loc, it, all_bays) if reg else ""}'
+
             f'{missing}<div class="sec"><h2 class="mono">01 / Specifications</h2></div><dl class="spec">{spec}</dl>'
-            f'{"".join(cal)}{docs}')
+            f'{"".join(cal)}{docs}{bay_panel(loc, it, all_bays) if reg else ""}')
 
 
 # -------------------------------------------------------------------- qr
