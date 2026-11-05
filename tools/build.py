@@ -679,16 +679,58 @@ def dropdown(i, label, options, other, placeholder, first=None, numeric=False):
 # so a finger on a phone and a mouse on a PC both work. Every change goes through the flow.
 EDIT_JS = """
 (function(){
-// Hugo 06/11/2026: edits show on screen at once; Done saves them all; Cancel throws them away.
+// Hugo 06/11/2026: "It must be instant". Edits show on screen at once; Done saves them all in one
+// request; what was saved stays on screen across reloads until the rebuilt page catches up; and the
+// page lines itself up with the live register as soon as it opens.
 var root=document.getElementById('layout'),btn=document.getElementById('editbtn'),cancel=document.getElementById('editcancel');
-if(!root||!btn||!window.SL)return;
+if(!root||!window.SL)return;
 var st=document.getElementById('editst'),trash=document.getElementById('trash'),on=false,drag=null,ops=[];
-function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
+var fresh=document.getElementById('fresh'),GEN=fresh?fresh.dataset.gen:'',KEY='sl-saved:'+location.pathname;
+function msg(t,bad){if(!st)return;st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
 function am(v){v=(v||'').trim().toUpperCase().replace(/\\s+/g,'');if(/^\\d{1,5}$/.test(v))v='AM'+('00000'+v).slice(-5);return v}
+function esc(s){return String(s||'').replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+// ---------------- the layout on screen
+function slot(bay){return root.querySelector('.slot[data-bay="'+bay+'"]')}
+function card(A){return root.querySelector('.mini[data-asset="'+A+'"]')}
+function fixEmpty(s){if(s&&!s.querySelector('.mini')){s.classList.add('empty');if(!s.querySelector('.free')){var f=document.createElement('div');f.className='free';f.textContent='Free slot';s.appendChild(f)}}}
+function fill(s){var f=s.querySelector('.free');if(f)f.remove();s.classList.remove('empty')}
+function shelfOf(bay){var p=bay.split('.');return[].filter.call(root.querySelectorAll('.shelf'),function(sh){var n=(sh.dataset.next||'').split('.');return n[0]===p[0]&&n[1]===p[1]})[0]}
+function addBay(bay){if(slot(bay))return slot(bay);var sh=shelfOf(bay);if(!sh)return null;var p=bay.split('.');
+  var ns=document.createElement('div');ns.className='slot empty';ns.dataset.bay=bay;
+  ns.innerHTML='<div class="code mono">'+bay+'</div><button class="ed addhere" type="button">+ asset</button><button class="ed rmbay" type="button">Remove bay</button><div class="free">Free slot</div>';
+  var row=sh.querySelector('.slots'),after=[].filter.call(row.children,function(c){return +c.dataset.bay.split('.')[2]<+p[2]}).pop();
+  if(after)after.after(ns);else row.prepend(ns);row.style.setProperty('--p',row.children.length);
+  var n=sh.dataset.next.split('.');if(+p[2]>=+n[2])sh.dataset.next=p[0]+'.'+p[1]+'.'+(+p[2]+1);return ns}
+function dropBay(bay){var s=slot(bay);if(!s||s.querySelector('.mini'))return;var row=s.parentNode;s.remove();row.style.setProperty('--p',row.children.length)}
+function newCard(A,desc){var c=document.createElement('a');c.className='mini added';c.dataset.asset=A;c.href='asset/'+A+'/';
+  c.innerHTML='<div class="ph"></div><div class="ref mono">'+esc(A)+'</div><div class="desc">'+esc(desc||'New - details appear shortly')+'</div><button class="ed rmasset" type="button">Remove</button>';return c}
+function put(A,bay,desc){var s=slot(bay)||addBay(bay);if(!s)return;var c=card(A)||newCard(A,desc),from=c.parentNode;
+  if(from!==s){fill(s);s.appendChild(c);if(from&&from.classList&&from.classList.contains('slot'))fixEmpty(from)}}
+function take(A){var c=card(A);if(!c)return;var s=c.parentNode;c.remove();fixEmpty(s)}
+function apply(o){if(o.action==='move'||o.action==='place')put(o.asset,o.bay,o.desc);else if(o.action==='remove')take(o.asset);
+  else if(o.action==='addBay')addBay(o.bay);else if(o.action==='removeBay')dropBay(o.bay)}
+// ---------------- saved changes survive a reload until the rebuilt page has them
+function saved(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
+function remember(list){try{var s=saved()||{ops:[]};s.ops=s.ops.concat(list);s.at=new Date().toISOString();localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}}
+(function(){var s=saved();if(!s)return;if(GEN&&GEN>=s.at){try{localStorage.removeItem(KEY)}catch(e){}return}s.ops.forEach(apply)})();
+// ---------------- line up with the live register as soon as the page opens
+function live(){SL.post({action:'layout',location:SL.location}).then(function(r){
+  if(!r||!r.ok||!r.assets)return;if(on&&ops.length)return;
+  (r.bays||[]).forEach(addBay);
+  var keep={};r.assets.forEach(function(a){if(!/^\\d+\\.\\d+\\.\\d+$/.test(a.StorageBay||''))return;keep[a.AssetNumber]=1;
+    put(a.AssetNumber,a.StorageBay,[a.Make,a.Model,a.Desc2].filter(Boolean).join(' '));
+    var c=card(a.AssetNumber);if(c){c.classList.toggle('transit',!!a.transit);var tn=c.querySelector('.tr');if(tn)tn.remove();
+      if(a.transit){var d=document.createElement('div');d.className='tr';d.textContent='In transit → '+(a.transit.to||'?')+' · not signed yet';c.insertBefore(d,c.querySelector('.ed'))}}});
+  [].forEach.call(root.querySelectorAll('.mini'),function(c){if(!keep[c.dataset.asset])take(c.dataset.asset)});
+  var bays={};(r.bays||[]).forEach(function(b){bays[b]=1});
+  [].forEach.call(root.querySelectorAll('.slot.empty'),function(s){if(!bays[s.dataset.bay])dropBay(s.dataset.bay)});
+  try{localStorage.removeItem(KEY)}catch(e){}}).catch(function(){})}
+SL.ready.then(function(ok){if(ok)live()});
+if(!btn)return;
+// ---------------- editing
 function count(){msg(ops.length?ops.length+' change'+(ops.length>1?'s':'')+' not saved yet - press Done to save.':'Drag an asset onto another bay. + asset adds one, + bay adds a bay.')}
 function setOn(v){on=v;window.SLediting=v;document.body.classList.toggle('editing',on);btn.textContent=on?'Done':'Edit layout';cancel.hidden=!on;
   try{sessionStorage.setItem('sl-edit',on?'1':'')}catch(e){}if(on)count();else if(!ops.length)msg('')}
-// ---- record a change; later changes to the same asset/bay replace earlier ones
 function rec(op){
   if(op.action==='move'||op.action==='remove'){var prev=ops.filter(function(o){return o.asset===op.asset})[0];
     if(prev&&prev.action==='place'){if(op.action==='remove')ops.splice(ops.indexOf(prev),1);else prev.bay=op.bay;count();return}
@@ -696,18 +738,23 @@ function rec(op){
   if(op.action==='removeBay'){var added=ops.filter(function(o){return o.action==='addBay'&&o.bay===op.bay})[0];
     if(added){ops.splice(ops.indexOf(added),1);count();return}}
   ops.push(op);count()}
-// ---- save on Done, one change at a time, in the order made
+function finish(n,fails,done){ops=[];btn.disabled=false;cancel.disabled=false;setOn(false);remember(done);
+  if(fails.length)msg((n-fails.length)+' saved, '+fails.length+' not saved: '+fails.join(' / '),1);else msg('All '+n+' change'+(n>1?'s':'')+' saved.');
+  if(window.SLfresh)SLfresh()}
+function one(todo,n,fails,done){if(!todo.length)return finish(n,fails,done);var o=todo.shift();
+  msg('Saving '+(n-todo.length)+' of '+n+'…');var q=Object.assign({location:SL.location},o);
+  SL.post(q).then(function(r){if(r.ok)done.push(o);else fails.push(r.message||o.action);if(r.warning)fails.push(r.warning);one(todo,n,fails,done)})
+    .catch(function(e){fails.push(SL.errText(e));one(todo,n,fails,done)})}
 function save(){
   if(!ops.length){setOn(false);return}
-  var todo=ops.slice(),n=todo.length,fails=[];btn.disabled=true;cancel.disabled=true;
-  (function next(){
-    if(!todo.length){ops=[];btn.disabled=false;cancel.disabled=false;setOn(false);
-      if(fails.length)msg((n-fails.length)+' saved, '+fails.length+' not saved: '+fails.join(' / '),1);
-      else msg('All '+n+' change'+(n>1?'s':'')+' saved. This page refreshes itself in about a minute.');
-      if(window.SLfresh)SLfresh();return}
-    var o=todo.shift();o.location=SL.location;msg('Saving '+(n-todo.length)+' of '+n+'…');
-    SL.post(o).then(function(r){if(!r.ok)fails.push(r.message||o.action);if(r.warning)fails.push(r.warning);next()})
-      .catch(function(e){fails.push(SL.errText(e));next()})})()}
+  var list=ops.map(function(o){var c={action:o.action};if(o.asset)c.asset=o.asset;if(o.bay)c.bay=o.bay;return c}),n=list.length;
+  btn.disabled=true;cancel.disabled=true;msg('Saving '+n+' change'+(n>1?'s':'')+'…');
+  // one request for everything; the flow commits once. Falls back to one at a time if batch is not there.
+  SL.post({action:'batch',location:SL.location,ops:list}).then(function(r){
+    if(r&&r.results){var fails=[],done=[];r.results.forEach(function(x){if(x.ok)done.push(list[x.i]);else fails.push(x.message||list[x.i].action)});
+      if(r.warning)fails.push(r.warning);finish(n,fails,done)}
+    else one(list.slice(),n,[],[])})
+  .catch(function(){one(list.slice(),n,[],[])})}
 btn.onclick=function(){if(!SL.isEditor())return;if(on)save();else setOn(true)};
 cancel.onclick=function(){if(ops.length&&!confirm('Throw away '+ops.length+' unsaved change(s)?'))return;
   ops=[];try{sessionStorage.removeItem('sl-edit')}catch(e){}location.reload()};
@@ -715,21 +762,16 @@ window.addEventListener('beforeunload',function(e){if(ops.length){e.preventDefau
 SL.ready.then(function(){if(!SL.isEditor()){try{sessionStorage.removeItem('sl-edit')}catch(e){}return}
   try{if(sessionStorage.getItem('sl-edit'))setOn(true)}catch(e){}});
 root.addEventListener('click',function(e){if(on&&e.target.closest('a'))e.preventDefault()},true);
-// ---- dragging: starts only after the finger/mouse really moves; always cleaned up
 function hit(x,y){var el=document.elementFromPoint(x,y);return{slot:el&&el.closest('.slot'),trash:el&&el.closest('#trash')}}
 function clearOver(){[].forEach.call(document.querySelectorAll('.over'),function(x){x.classList.remove('over')})}
 function end(drop){if(!drag)return;var d=drag;drag=null;if(d.g)d.g.remove();d.c.classList.remove('dragging');clearOver();
   [].forEach.call(document.querySelectorAll('.ghost'),function(g){g.remove()});
-  if(!drop||!d.started)return;
-  var A=d.c.dataset.asset;
-  if(d.trashed){d.c.remove();rec({action:'remove',asset:A});fixEmpty(d.from);return}
-  if(!d.to||d.to===d.from)return;
-  var free=d.to.querySelector('.free');if(free)free.remove();d.to.classList.remove('empty');
-  d.to.appendChild(d.c);fixEmpty(d.from);rec({action:'move',asset:A,bay:d.to.dataset.bay})}
-function fixEmpty(s){if(s&&!s.querySelector('.mini')){s.classList.add('empty');if(!s.querySelector('.free')){var f=document.createElement('div');f.className='free';f.textContent='Free slot';s.appendChild(f)}}}
+  if(!drop||!d.started)return;var A=d.c.dataset.asset;
+  if(d.trashed){take(A);rec({action:'remove',asset:A});return}
+  if(!d.to||d.to===d.from)return;put(A,d.to.dataset.bay);rec({action:'move',asset:A,bay:d.to.dataset.bay})}
 root.addEventListener('pointerdown',function(e){
   if(!on||drag||e.target.closest('button'))return;var c=e.target.closest('.mini');if(!c)return;e.preventDefault();
-  drag={c:c,from:c.closest('.slot'),x0:e.clientX,y0:e.clientY,started:false,id:e.pointerId}});
+  drag={c:c,from:c.closest('.slot'),x0:e.clientX,y0:e.clientY,started:false}});
 document.addEventListener('pointermove',function(e){
   if(!drag)return;
   if(!drag.started){if(Math.abs(e.clientX-drag.x0)+Math.abs(e.clientY-drag.y0)<8)return;
@@ -743,23 +785,16 @@ document.addEventListener('pointerup',function(){end(true)});
 document.addEventListener('pointercancel',function(){end(false)});
 window.addEventListener('blur',function(){end(false)});
 document.addEventListener('visibilitychange',function(){if(document.hidden)end(false)});
-// ---- + asset, + bay, Remove bay: on screen now, saved on Done
 root.addEventListener('click',function(e){
   var b=e.target.closest('button.ed');if(!b||!on)return;e.preventDefault();e.stopPropagation();
   if(b.classList.contains('addhere')){var s=b.closest('.slot'),bay=s.dataset.bay,A=am(prompt('Asset number to add to bay '+bay+' (e.g. AM00869 or 869)'));
     if(!A)return;if(!/^AM\\d{5}$/.test(A)){msg('That is not an asset number.',1);return}
-    if(document.querySelector('.mini[data-asset="'+A+'"]')){msg(A+' is already on this layout - drag it instead.',1);return}
-    var c=document.createElement('a');c.className='mini added';c.dataset.asset=A;c.href='#';
-    c.innerHTML='<div class="ph"></div><div class="ref mono">'+A+'</div><div class="desc">New - details appear after saving</div><button class="ed rmasset" type="button">Remove</button>';
-    var free=s.querySelector('.free');if(free)free.remove();s.classList.remove('empty');s.appendChild(c);rec({action:'place',asset:A,bay:bay})}
-  else if(b.classList.contains('addbay')){var sh=b.closest('.shelf'),nb=sh.dataset.next,p=nb.split('.');
-    var ns=document.createElement('div');ns.className='slot empty';ns.dataset.bay=nb;
-    ns.innerHTML='<div class="code mono">'+nb+'</div><button class="ed addhere" type="button">+ asset</button><button class="ed rmbay" type="button">Remove bay</button><div class="free">Free slot</div>';
-    var row=sh.querySelector('.slots');row.appendChild(ns);row.style.setProperty('--p',row.children.length);
-    sh.dataset.next=p[0]+'.'+p[1]+'.'+(+p[2]+1);rec({action:'addBay',bay:nb})}
-  else if(b.classList.contains('rmasset')){var cd=b.closest('.mini'),fr=cd.closest('.slot');cd.remove();fixEmpty(fr);rec({action:'remove',asset:cd.dataset.asset})}
+    if(card(A)){msg(A+' is already on this layout - drag it instead.',1);return}
+    put(A,bay);rec({action:'place',asset:A,bay:bay})}
+  else if(b.classList.contains('addbay')){var nb=b.closest('.shelf').dataset.next;addBay(nb);rec({action:'addBay',bay:nb})}
+  else if(b.classList.contains('rmasset')){var A2=b.closest('.mini').dataset.asset;take(A2);rec({action:'remove',asset:A2})}
   else if(b.classList.contains('rmbay')){var s2=b.closest('.slot');if(s2.querySelector('.mini')){msg('Move or remove the assets in '+s2.dataset.bay+' first.',1);return}
-    var row2=s2.parentNode;s2.remove();row2.style.setProperty('--p',row2.children.length);rec({action:'removeBay',bay:s2.dataset.bay})}
+    dropBay(s2.dataset.bay);rec({action:'removeBay',bay:s2.dataset.bay})}
 },true);
 })();
 """
