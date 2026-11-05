@@ -1,0 +1,8 @@
+# Only the data and the tools live here; the pages and PDFs are built by the Action.
+/*
+!/data/
+!/tools/
+!/.github/
+!/.gitignore
+!/.gitattributes
+tools/__pycache__/

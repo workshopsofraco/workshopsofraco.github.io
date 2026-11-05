@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -31,16 +31,6 @@ jobs:
       - run: pip install pillow "qrcode[pil]" reportlab
       - name: Build pages and PDFs
         run: python tools/build.py --no-pull --pdfs
-      - name: Keep the built files in the repository
-        run: |
-          git config user.name "Sofraco Workshop"
-          git config user.email "workshop@sofraco.com.au"
-          git add -A
-          if ! git diff --cached --quiet; then
-            git commit -q -m "Rebuild storage layouts"
-            git pull -q --rebase origin main
-            git push -q origin HEAD:main
-          fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
