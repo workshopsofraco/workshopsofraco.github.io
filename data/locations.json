@@ -32,16 +32,16 @@
                           "qr_json":  "data/fastener-shelves/qr.json"
                       },
                       {
-                          "slug":  "edt-test",
+                          "slug":  "edt-test-asset",
                           "title":  "EDT Test Asset",
                           "subtitle":  "Test page - not for use",
-                          "csv":  "data/edt-test/items.csv",
+                          "csv":  "data/edt-test-asset/items.csv",
                           "ref_col":  "register_no",
                           "ref_label":  "Asset No",
                           "unit_word":  "Cabinet",
                           "asset_register":  true,
                           "hidden":  true,
-                          "qr_json":  "data/edt-test/qr.json",
+                          "qr_json":  "data/edt-test-asset/qr.json",
                           "move":  {
                                        "flow_url":  "https://defaultb3fa63e0ca724aee9629da15a41c21.f9.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/07/workflows/b8bfa0b8ccec459797d129e611b4b627/triggers/manual/paths/invoke?api-version=1",
                                        "tenant_id":  "b3fa63e0-ca72-4aee-9629-da15a41c21f9",
