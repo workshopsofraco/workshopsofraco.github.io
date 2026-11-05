@@ -85,9 +85,64 @@ a.btn.alt,button.btn.alt{background:#fff;color:var(--deep);border:1.5px solid va
 .mv button.btn{width:100%;border:0;font:inherit;font-weight:700;cursor:pointer}.mv button.btn.alt{border:1.5px solid var(--deep)}
 .mvmsg{font-size:14px;font-weight:600;color:var(--deep)}.mvmsg.bad{color:var(--red)}
 .mvroute{font-size:15px;font-weight:700;margin-top:6px}
-footer{max-width:1180px;margin:0 auto;padding:14px 16px 30px;border-top:1px solid var(--rule);font-size:11px;color:var(--grey);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.slot .mini{display:flex;flex-direction:column;align-items:center;width:100%;text-decoration:none;color:inherit;padding:4px 2px;border:1px solid var(--rule);background:#fff;margin-top:6px}
+.slot .mini .ref{font-size:11px;margin-top:4px}
+.mini.transit,.card.transit{background:#FFF4E5;border:2px solid #F59E0B}
+.tr{font-size:10.5px;font-weight:800;color:#B45309;margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
+.card .tr{font-size:12px}
+.note.transit{background:#FFF4E5;border-color:#F59E0B;color:#7C2D12;margin-top:12px}
+.mv .gate .btn{margin-top:0}footer{max-width:1180px;margin:0 auto;padding:14px 16px 30px;border-top:1px solid var(--rule);font-size:11px;color:var(--grey);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 </style></head><body>
 <header><div class="hd"><img src="../../logo.png" alt="Sofraco"><div class="t"><h1>Shelf 1.5</h1><div class="sub mono">Lab Equipment Storage</div></div></div></header>
-<main><p class="crumb mono"><a href="../">‹ Lab Equipment Storage</a></p><div class="sec"><h2 class="mono">01 / Shelf positions</h2><span class="mono">Cabinet 1 · Shelf 5</span></div><div class="strip" style="--p:4"><a class="mono" href="#p1">1.5.1</a><a class="mono" href="#p2">1.5.2</a><a class="mono" href="#p3">1.5.3</a><a class="mono" href="#p4">1.5.4</a></div><div class="sec"><h2 class="mono">02 / What belongs here</h2><span class="mono">4 items</span></div><div class="cards"><a class="card plain" href="../asset/AM00134/" id=p1><div class="ph"><img src="../img/AM00134_OEM.webp" alt="Fluke 17xx iFlexi 3000A 24 Flexible Current Probes" loading="lazy"></div><div><div class="code mono">1.5.1</div><div class="ref mono">Asset No: AM00134</div><div class="desc">Fluke 17xx iFlexi 3000A 24 Flexible Current Probes</div><div class=mm>Fluke 17XX-IFLEXI3000A-24</div><div class=more>Specifications &amp; calibration ›</div></div></a><a class="card plain" href="../asset/AM00143/" id=p2><div class="ph"><img src="../img/AM00143_OEM.webp" alt="Mitutoyo ID-F150E 543-554-1 Absolute Digital Indicator" loading="lazy"></div><div><div class="code mono">1.5.2</div><div class="ref mono">Asset No: AM00143</div><div class="desc">Mitutoyo ID-F150E 543-554-1 Absolute Digital Indicator</div><div class=mm>Mitutoyo 543-554-1</div><div class=more>Specifications &amp; calibration ›</div></div></a><a class="card plain" href="../asset/AM00120/" id=p3><div class="ph"><img src="../img/AM00120_OEM.webp" alt="Fluke DS703 Videoscope" loading="lazy"></div><div><div class="code mono">1.5.3</div><div class="ref mono">Asset No: AM00120</div><div class="desc">Fluke DS703 Videoscope</div><div class=mm>Fluke DS703 FC</div><div class=more>Specifications &amp; calibration ›</div></div></a><a class="card plain" href="../asset/AM00361/" id=p4><div class="ph"><img src="../img/AM00361_OEM.webp" alt="PicoScope 2204A Oscilloscope" loading="lazy"></div><div><div class="code mono">1.5.4</div><div class="ref mono">Asset No: AM00361</div><div class="desc">PicoScope 2204A Oscilloscope</div><div class=mm>Pico Technology 2204A</div><div class=more>Specifications &amp; calibration ›</div></div></a></div></main>
-<footer><span>Sofraco Engineering Systems</span><span class="mono">Updated 05/11/2026 15:30</span></footer>
+<main><div id="slcfg" hidden data-flow="https://defaultb3fa63e0ca724aee9629da15a41c21.f9.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/07/workflows/b8bfa0b8ccec459797d129e611b4b627/triggers/manual/paths/invoke?api-version=1" data-client="3dba9759-c18f-411a-ba3c-b213b2f038a9" data-tenant="b3fa63e0-ca72-4aee-9629-da15a41c21f9" data-redirect="https://workshopsofraco.github.io/auth/" data-location="Lab Equipment Storage"></div><script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@4/lib/msal-browser.min.js"></script><script>
+window.SL=(function(){
+var cfg=document.getElementById('slcfg').dataset,SCOPE=['https://service.flow.microsoft.com//User'],app=null,acct=null;
+function go(u){window.location.href=u;return false}
+function token(){
+  if(window.MV_TEST_TOKEN)return Promise.resolve(window.MV_TEST_TOKEN);
+  return app.acquireTokenSilent({scopes:SCOPE,account:acct}).then(function(r){return r.accessToken})
+   .catch(function(){return app.acquireTokenRedirect({scopes:SCOPE,account:acct,onRedirectNavigate:go})})}
+function post(o){return token().then(function(t){return fetch(cfg.flow,{method:'POST',
+  headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify(o)})})
+  .then(function(r){if(r.status===401||r.status===403)throw new Error('auth');return r.json()})}
+function signIn(){return app.loginRedirect({scopes:SCOPE,onRedirectNavigate:go})}
+function errText(e){return e&&e.message==='auth'?'Your sign-in was not accepted. Sign in with your Sofraco account.':'Could not reach the tracker. Nothing was changed.'}
+var ready=new Promise(function(res){
+  if(window.MV_TEST_TOKEN){res(true);return}
+  app=new msal.PublicClientApplication({auth:{clientId:cfg.client,authority:'https://login.microsoftonline.com/'+cfg.tenant,
+    redirectUri:cfg.redirect},cache:{cacheLocation:'localStorage'}});
+  app.initialize().then(function(){return app.handleRedirectPromise()}).then(function(r){
+    acct=(r&&r.account)||app.getAllAccounts()[0]||null;if(acct)app.setActiveAccount(acct);res(!!acct)})
+  .catch(function(){res(false)})});
+function gate(panel,onIn){ready.then(function(ok){
+  panel.querySelector('.gate').hidden=ok;panel.querySelector('.inner').hidden=!ok;if(ok&&onIn)onIn()})
+  panel.querySelector('.gate button').onclick=function(){signIn()}}
+return {post:post,signIn:signIn,ready:ready,gate:gate,errText:errText,location:cfg.location};})();
+</script><p class="crumb mono"><a href="../">‹ Lab Equipment Storage</a></p><div class="sec"><h2 class="mono">01 / Shelf positions</h2><span class="mono">Cabinet 1 · Shelf 5</span></div><div class="strip" style="--p:4"><a class="mono" href="#p1">1.5.1</a><a class="mono" href="#p2">1.5.2</a><a class="mono" href="#p3">1.5.3</a><a class="mono" href="#p4">1.5.4</a></div><div class="sec"><h2 class="mono">02 / What belongs here</h2><span class="mono">4 items</span></div><div class="cards"><a class="card plain" href="../asset/AM00134/" id=p1><div class="ph"><img src="../img/AM00134_OEM.webp" alt="Fluke i3000s Flex-24 Flexible CTs 3000A x4" loading="lazy"></div><div><div class="code mono">1.5.1</div><div class="ref mono">Asset No: AM00134</div><div class="desc">Fluke i3000s Flex-24 Flexible CTs 3000A x4</div><div class=mm>Fluke i3000s Flex-24</div><div class=more>Specifications &amp; calibration ›</div></div></a><a class="card plain" href="../asset/AM00143/" id=p2><div class="ph"><img src="../img/AM00143_OEM.webp" alt="Mitutoyo Digimatic Indicator" loading="lazy"></div><div><div class="code mono">1.5.2</div><div class="ref mono">Asset No: AM00143</div><div class="desc">Mitutoyo Digimatic Indicator</div><div class=mm>Mitutoyo</div><div class=more>Specifications &amp; calibration ›</div></div></a><a class="card plain" href="../asset/AM00120/" id=p3><div class="ph"><img src="../img/AM00120_OEM.webp" alt="DS703 FC Fluke - Inspection Video Scope" loading="lazy"></div><div><div class="code mono">1.5.3</div><div class="ref mono">Asset No: AM00120</div><div class="desc">DS703 FC Fluke - Inspection Video Scope</div><div class=mm>Fluke DS703 FC</div><div class=more>Specifications &amp; calibration ›</div></div></a><a class="card plain" href="../asset/AM00361/" id=p4><div class="ph"><img src="../img/AM00361_OEM.webp" alt="Picoscope USB Oscilloscope" loading="lazy"></div><div><div class="code mono">1.5.4</div><div class="ref mono">Asset No: AM00361</div><div class="desc">Picoscope USB Oscilloscope</div><div class=mm>Pico</div><div class=more>Specifications &amp; calibration ›</div></div></a></div><div class="sec"><h2 class="mono">03 / Change this shelf</h2></div><div id="shelfedit" class="mv" data-next="1.5.5" data-first="1.5.1"><div class="gate" hidden><button class="btn" type="button">Sign in with Sofraco</button><div class="hint">Sign in once with your own Sofraco account to make changes.</div></div><div class="inner" hidden><div id="shst" class="mvmsg"></div><label>Asset number<input id="shasset" maxlength="12" autocomplete="off" placeholder="e.g. AM00869 or 869"></label><label>Bay<input id="shbay" list="shbays" maxlength="11" autocomplete="off" inputmode="decimal" placeholder="Pick or type, e.g. 1.5.1"></label><datalist id="shbays"><option value="1.5.1"><option value="1.5.2"><option value="1.5.3"><option value="1.5.4"></datalist><button id="shadd" class="btn" type="button">Add asset to this bay</button><button id="shnewbay" class="btn alt" type="button">Add bay 1.5.5</button><div class="hint">The asset must already be in the Asset Register. A bay can hold several assets.</div></div></div><script>
+(function(){
+var box=document.getElementById('shelfedit');if(!box)return;
+var st=document.getElementById('shst');
+function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
+function done(r){if(r.ok)msg((r.message||'Done')+' The pages update in about a minute.');else msg(r.message||'Not changed.',1)}
+function am(v){v=v.trim().toUpperCase().replace(/\s+/g,'');if(/^\d{1,5}$/.test(v))v='AM'+('00000'+v).slice(-5);return v}
+function bayOk(v){return /^\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(v)}
+document.getElementById('shadd').onclick=function(){
+  var a=am(document.getElementById('shasset').value),bay=document.getElementById('shbay').value.trim();
+  if(!/^AM\d{5}$/.test(a)){msg('Type the asset number, for example AM00869 or just 869.',1);return}
+  if(!bayOk(bay)){msg('Choose the bay, for example '+box.dataset.first+'.',1);return}
+  var b=this;b.disabled=true;msg('Adding '+a+'…');
+  SL.post({action:'place',location:SL.location,bay:bay,asset:a}).then(function(r){b.disabled=false;done(r)})
+  .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
+document.getElementById('shnewbay').onclick=function(){
+  var b=this,bay=box.dataset.next;b.disabled=true;msg('Adding bay '+bay+'…');
+  SL.post({action:'addBay',location:SL.location,bay:bay}).then(function(r){b.disabled=false;done(r)})
+  .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
+[].forEach.call(box.querySelectorAll('.shrm'),function(btn){btn.onclick=function(){
+  var bay=btn.dataset.bay;if(!confirm('Remove empty bay '+bay+'?'))return;btn.disabled=true;msg('Removing bay '+bay+'…');
+  SL.post({action:'removeBay',location:SL.location,bay:bay}).then(function(r){btn.disabled=false;done(r)})
+  .catch(function(e){btn.disabled=false;msg(SL.errText(e),1)})}});
+SL.gate(box);
+})();
+</script></main>
+<footer><span>Sofraco Engineering Systems</span><span class="mono">Updated 05/11/2026 15:47</span></footer>
 </body></html>

@@ -1,0 +1,52 @@
+bin_location,register_no,description,make,model,image
+1.1.1,AM00138,FLIR DM284 Digital Multimeter with Thermal Image,FLIR,DM284,1.1.1_AM00138
+1.1.2,AM00119,Fluke Networks Cable Tester Coaxial Miroscanner2 Ethernet Network Scanner,Fluke Networks Cable Tester Coaxial,Miroscanner2,1.1.2_AM00119
+1.1.3,,,,,
+1.1.4,AM00135,Fluke 9040 Phase Rotation Indicator,Fluke,9040,1.1.4_AM00135
+1.2.1,AM00121,Center 309 Temperature Data Logger,Center,309,1.2.1_AM00121
+1.2.2,AM00123,Fluke - Clamp Meter 381,Fluke,381,1.2.2_AM00123
+1.2.3,AM00357,Konica Minolta Luminance Meter LS-100,Konica Minolta,LS-100,1.2.3_AM00357
+1.2.4,AM00126,PLICSCOM Vega Tank Level Calibrator,Vega,PLICSCOM,1.2.4_AM00126
+1.3.1,AM00356,Multimeter Fluke 189,Fluke,189,1.3.1_AM00356
+1.3.2,AM00257,TraceAll CZ1000 Cable Chaser,TraceAll,CZ1000,1.3.2_AM00257
+1.3.3,AM00502,Megger DLRO10HD Digital Low Resistance Ohmmeter,Megger,DLRO10HD,1.3.3_AM00502
+1.3.4,AM00087,MIT430/2 Insulation Resistance Tester Megger,Megger,MIT430/2,1.3.4_AM00087
+1.4.1,AM00456,Schneider LV485510SP Circuit Breaker Test Kit,Schneider,LV485510SP,1.4.1_AM00456
+1.4.2,AM00122,Milwaukee Flex Inspection Camera,Milwaukee,,1.4.2_AM00122
+1.4.3,AM00125,SL4033SD Lutron - Sound Level Meter,Lutron,SL4033SD,1.4.3_AM00125
+1.4.4,AM00124,Starr TGD-100 Ultrasonic Thickness Gauge,Starr,TGD-100,1.4.4_AM00124
+1.5.1,AM00134,Fluke i3000s Flex-24 Flexible CTs 3000A x4,Fluke,i3000s Flex-24,1.5.1_AM00134
+1.5.2,AM00143,Mitutoyo Digimatic Indicator,Mitutoyo,,1.5.2_AM00143
+1.5.3,AM00120,DS703 FC Fluke - Inspection Video Scope,Fluke,DS703 FC,1.5.3_AM00120
+1.5.4,AM00361,Picoscope USB Oscilloscope,Pico,,1.5.4_AM00361
+2.1.1,AM00097,"Dewalt DW088-XE Laser Chalkline, laser line generator",Dewalt,DW088-XE,2.1.1_AM00097
+2.1.2,AM00686,Dewalt DW08802 Laser Level,Dewalt,DW08802,2.1.2_AM00686
+2.1.3,AM00141,SKF TKRT 20 Tachometer,SKF,TKRT 20,2.1.3_AM00141
+2.1.4,AM00751,SAUTER HBA 100-0 Shore Hardness Tester,SAUTER,HBA 100-0,2.1.4_AM00751
+2.2.1,AM00139,Fluke Power Logger 1738,Fluke,Fluke Power Logger 1738,2.2.1_AM00139
+2.2.2,AM00709,RS Pro ILOM 508A Milliohm Meter,RS Pro,ILOM 508A,2.2.2_AM00709
+2.2.3,AM00136,Fluke i400 AC Current Clamp,Fluke,i400,2.2.3_AM00136
+2.2.4,AM00508,Multimeter Fluke 177,Fluke,177,2.2.4_AM00508
+2.3.1,AM00849,Beamex Hand Pump & Fittings,Beamex,,2.3.1_PGXH
+2.3.2,AM00127,EXT600 Beamex - External Pressure Module,Beamex,EXT600,2.3.2_AM00127
+2.3.2,AM00130,MC6 Beamex - Advance Field Calibrator,Beamex,MC6,2.3.2_AM00130
+2.4.1,AM00131,E6390 Flir Infrared Camera,FLIR,E6390,2.4.1_AM00131
+2.4.2,AM00710,PW3198 Hioki Power Quality Analyser,Hioki,PW3198,2.4.2_AM00710
+2.5.1,AM00521,CMXA750100-05 Vibration Analyzer SKF GX Series,SKF,CMXA750100-05,2.5.1_AM00521
+2.5.2,AM00089,MSA Safety Gas Detector MSA Altair 5X IR CH4,MSA Safety,Altair 5X IR,2.5.2_AM00089
+2.5.2,AM00091,MSA Safety Gas Detector MSA Altair 5X IR CH4,MSA Safety,Altair 5X IR,2.5.2_AM00091
+3.1.1,AM00336,Fluke Multimeter 175 True RMS 175 Digital Multimeter,Fluke Multimeter 175 True RMS,175,3.1.1_AM00336
+3.1.2,AM00603,Fluke 1587 FC Insulation Multimeter,Fluke,1587 FC,3.1.2_AM00603
+3.1.3,AM00566,Multimeter Fluke 179,Fluke,179,3.1.3_AM00566
+3.1.4,AM00567,Multimeter Fluke 179,Fluke,179,3.1.4_AM00567
+3.2.1,AM00117,MI3309 BT Metrel - Electrical Safety Tester Test & Tag,Metrel,MI3309 BT,3.2.1_AM00117
+3.2.2,AM00525,Stauff SPG-DIGI-B0600-B Digital Pressure Gauge (600 bar),Stauff,SPG-DIGI-B0600-B,3.2.2_AM00525
+3.2.3,AM00846,Daytona Drive Metric Socket Set,Daytona,,3.2.3_DAYTONA-SOCKETS
+3.2.3,AM00847,Makita Screwdriver Kit,Makita,,3.2.3_DF001DW
+3.2.3,AM00848,Armasight Nightvision Goggles,Armasight,,3.2.3_NYX-7-PRO
+3.3.1,AM00453,Ralston Instruments NitroPak Pressure Calibration System,Ralston Instruments,,3.3.1_AM00453
+3.3.2,AM00457,Fluke 700HTPK2 Hydraulic Pressure Test Kit,Fluke,700HTPK2,3.3.2_AM00457
+3.4.1,AM00850,Flexim Flowmeter,Flexim,,3.4.1_FLUXUS-F601
+3.4.2,,,,,
+3.5.1,AM00526,Pruftechnik ALI 50.200 Laser Alignment Rotalign Touch,Pruftechnik,ALI 50.200,3.5.1_AM00526
+3.5.2,,,,,

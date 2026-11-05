@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AM00848 · Armasight NYX-7 PRO Night Vision Scope - Sofraco</title><meta name="robots" content="noindex">
+<title>AM00848 · Armasight Nightvision Goggles - Sofraco</title><meta name="robots" content="noindex">
 <link rel="icon" href="../../../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -85,41 +85,60 @@ a.btn.alt,button.btn.alt{background:#fff;color:var(--deep);border:1.5px solid va
 .mv button.btn{width:100%;border:0;font:inherit;font-weight:700;cursor:pointer}.mv button.btn.alt{border:1.5px solid var(--deep)}
 .mvmsg{font-size:14px;font-weight:600;color:var(--deep)}.mvmsg.bad{color:var(--red)}
 .mvroute{font-size:15px;font-weight:700;margin-top:6px}
-footer{max-width:1180px;margin:0 auto;padding:14px 16px 30px;border-top:1px solid var(--rule);font-size:11px;color:var(--grey);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.slot .mini{display:flex;flex-direction:column;align-items:center;width:100%;text-decoration:none;color:inherit;padding:4px 2px;border:1px solid var(--rule);background:#fff;margin-top:6px}
+.slot .mini .ref{font-size:11px;margin-top:4px}
+.mini.transit,.card.transit{background:#FFF4E5;border:2px solid #F59E0B}
+.tr{font-size:10.5px;font-weight:800;color:#B45309;margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
+.card .tr{font-size:12px}
+.note.transit{background:#FFF4E5;border-color:#F59E0B;color:#7C2D12;margin-top:12px}
+.mv .gate .btn{margin-top:0}footer{max-width:1180px;margin:0 auto;padding:14px 16px 30px;border-top:1px solid var(--rule);font-size:11px;color:var(--grey);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 </style></head><body>
 <header><div class="hd"><img src="../../../logo.png" alt="Sofraco"><div class="t"><h1>AM00848</h1><div class="sub mono">Lab Equipment Storage</div></div></div></header>
-<main><p class="crumb mono"><a href="../../">‹ Lab Equipment Storage</a> › <a href="../../3-2/">Cabinet 3 · Shelf 3.2</a></p><div class="hero"><div class="ph"><img src="../../img/AM00848_OEM.webp" alt="Armasight NYX-7 PRO Night Vision Scope" loading="lazy"></div><div><div class="code mono">3.2.3</div><div class="ref mono">AM00848</div><div class="desc">Armasight NYX-7 PRO Night Vision Scope</div></div></div><div class="sec"><h2 class="mono">Send it on</h2></div><div id="move" class="mv" data-flow="https://defaultb3fa63e0ca724aee9629da15a41c21.f9.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/07/workflows/b8bfa0b8ccec459797d129e611b4b627/triggers/manual/paths/invoke?api-version=1" data-asset="AM00848" data-client="3dba9759-c18f-411a-ba3c-b213b2f038a9" data-tenant="b3fa63e0-ca72-4aee-9629-da15a41c21f9" data-redirect="https://workshopsofraco.github.io/auth/"><div id="mvst" class="mvmsg"></div><div id="mvlogin" hidden><button id="mvsignin" class="btn" type="button">Sign in with Sofraco</button></div><div id="mvsend" hidden><label>Going to<input id="mvto" list="mvplaces" maxlength="100" autocomplete="off" placeholder="Pick or type a place"></label><datalist id="mvplaces"><option value="GI"><option value="SCM"><option value="Workshop"><option value="Calibration Facility"></datalist><button id="mvgo" class="btn" type="button">Send it on</button></div><div id="mvdel" hidden><div class="mvroute mono" id="mvroute"></div><label>Received by (blank = you)<input id="mvrecv" list="mvpeople" maxlength="80" autocomplete="off" placeholder="Pick or type a name"></label><datalist id="mvpeople"><option value="Shaun Cotton"><option value="Gary Scarlett"><option value="Hugo Machado"><option value="Mehedi Showrov"><option value="Kyle Lassau"><option value="Saad"></datalist><label>Signature</label><canvas id="mvsig"></canvas><button id="mvclear" class="btn alt" type="button">Clear signature</button><button id="mvdeliver" class="btn" type="button">Deliver it</button></div></div><script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@4/lib/msal-browser.min.js"></script><script>
-(function(){
-var box=document.getElementById('move');if(!box)return;
-var U=box.dataset.flow,A=box.dataset.asset,st=document.getElementById('mvst');
-var SCOPE=['https://service.flow.microsoft.com//User'],app=null,acct=null;
-function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
-function show(id){['mvlogin','mvsend','mvdel'].forEach(function(x){document.getElementById(x).hidden=(x!==id)})}
+<main><div id="slcfg" hidden data-flow="https://defaultb3fa63e0ca724aee9629da15a41c21.f9.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/07/workflows/b8bfa0b8ccec459797d129e611b4b627/triggers/manual/paths/invoke?api-version=1" data-client="3dba9759-c18f-411a-ba3c-b213b2f038a9" data-tenant="b3fa63e0-ca72-4aee-9629-da15a41c21f9" data-redirect="https://workshopsofraco.github.io/auth/" data-location="Lab Equipment Storage"></div><script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@4/lib/msal-browser.min.js"></script><script>
+window.SL=(function(){
+var cfg=document.getElementById('slcfg').dataset,SCOPE=['https://service.flow.microsoft.com//User'],app=null,acct=null;
+function go(u){window.location.href=u;return false}
 function token(){
   if(window.MV_TEST_TOKEN)return Promise.resolve(window.MV_TEST_TOKEN);
   return app.acquireTokenSilent({scopes:SCOPE,account:acct}).then(function(r){return r.accessToken})
    .catch(function(){return app.acquireTokenRedirect({scopes:SCOPE,account:acct,onRedirectNavigate:go})})}
-function post(o){return token().then(function(t){return fetch(U,{method:'POST',
+function post(o){return token().then(function(t){return fetch(cfg.flow,{method:'POST',
   headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify(o)})})
   .then(function(r){if(r.status===401||r.status===403)throw new Error('auth');return r.json()})}
-function fail(e){msg(e&&e.message==='auth'?'Your sign-in was not accepted. Sign in with your Sofraco account.':'Could not reach the tracker. Nothing was changed.',1)}
-function load(){msg('Checking where it is…');post({action:'status',asset:A}).then(function(r){
+function signIn(){return app.loginRedirect({scopes:SCOPE,onRedirectNavigate:go})}
+function errText(e){return e&&e.message==='auth'?'Your sign-in was not accepted. Sign in with your Sofraco account.':'Could not reach the tracker. Nothing was changed.'}
+var ready=new Promise(function(res){
+  if(window.MV_TEST_TOKEN){res(true);return}
+  app=new msal.PublicClientApplication({auth:{clientId:cfg.client,authority:'https://login.microsoftonline.com/'+cfg.tenant,
+    redirectUri:cfg.redirect},cache:{cacheLocation:'localStorage'}});
+  app.initialize().then(function(){return app.handleRedirectPromise()}).then(function(r){
+    acct=(r&&r.account)||app.getAllAccounts()[0]||null;if(acct)app.setActiveAccount(acct);res(!!acct)})
+  .catch(function(){res(false)})});
+function gate(panel,onIn){ready.then(function(ok){
+  panel.querySelector('.gate').hidden=ok;panel.querySelector('.inner').hidden=!ok;if(ok&&onIn)onIn()})
+  panel.querySelector('.gate button').onclick=function(){signIn()}}
+return {post:post,signIn:signIn,ready:ready,gate:gate,errText:errText,location:cfg.location};})();
+</script><p class="crumb mono"><a href="../../">‹ Lab Equipment Storage</a> › <a href="../../3-2/">Cabinet 3 · Shelf 3.2</a></p><div class="hero"><div class="ph"><img src="../../img/AM00848_OEM.webp" alt="Armasight Nightvision Goggles" loading="lazy"></div><div><div class="code mono">3.2.3</div><div class="ref mono">AM00848</div><div class="desc">Armasight Nightvision Goggles</div></div></div><div class="sec"><h2 class="mono">Send it on</h2></div><div id="move" class="mv" data-asset="AM00848"><div class="gate" hidden><button class="btn" type="button">Sign in with Sofraco</button><div class="hint">Sign in once with your own Sofraco account to make changes.</div></div><div class="inner" hidden><div id="mvst" class="mvmsg"></div><div id="mvsend" hidden><label>Going to<input id="mvto" list="mvplaces" maxlength="100" autocomplete="off" placeholder="Pick or type a place"></label><datalist id="mvplaces"><option value="GI"><option value="SCM"><option value="Workshop"><option value="Calibration Facility"></datalist><button id="mvgo" class="btn" type="button">Send it on</button></div><div id="mvdel" hidden><div class="mvroute mono" id="mvroute"></div><label>Received by (blank = you)<input id="mvrecv" list="mvpeople" maxlength="80" autocomplete="off" placeholder="Pick or type a name"></label><datalist id="mvpeople"><option value="Shaun Cotton"><option value="Gary Scarlett"><option value="Hugo Machado"><option value="Mehedi Showrov"><option value="Kyle Lassau"><option value="Saad"></datalist><label>Signature</label><canvas id="mvsig"></canvas><button id="mvclear" class="btn alt" type="button">Clear signature</button><button id="mvdeliver" class="btn" type="button">Deliver it</button></div></div></div><script>
+(function(){
+var box=document.getElementById('move');if(!box)return;
+var A=box.dataset.asset,st=document.getElementById('mvst');
+function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
+function show(id){['mvsend','mvdel'].forEach(function(x){document.getElementById(x).hidden=(x!==id)})}
+function load(){msg('Checking where it is…');SL.post({action:'status',asset:A}).then(function(r){
   if(r.ok===false){msg(r.message||'Not available.',1);return}
   if(!r.found){msg('This asset was not found in the register.',1);return}
   var who=r.signedInAs?' · signed in as '+r.signedInAs:'';
   if(r.inTransit){document.getElementById('mvroute').textContent=(r.from||'?')+' → '+(r.to||'?')+(r.isr?' · '+r.isr:'');show('mvdel');msg('In transit - sign below when it arrives'+who)}
   else{show('mvsend');msg('Currently at: '+(r.whereabouts||'unknown')+who)}
- }).catch(fail)}
-function go(u){window.location.href=u;return false}
-document.getElementById('mvsignin').onclick=function(){msg('Opening Sofraco sign-in…');app.loginRedirect({scopes:SCOPE,onRedirectNavigate:go}).catch(function(e){msg('Sign-in could not start: '+(e.errorCode||e.message),1)})};
+ }).catch(function(e){msg(SL.errText(e),1)})}
 var to=document.getElementById('mvto'),PLACES=['GI','SCM','Workshop','Calibration Facility'];
 document.getElementById('mvgo').onclick=function(){
   var v=to.value.trim(),k=PLACES.filter(function(p){return p.toLowerCase()===v.toLowerCase()})[0];
   if(!v){msg('Choose or type where it is going.',1);return}
   var b=this;b.disabled=true;msg('Sending…');
-  post(k?{action:'send',asset:A,to:k}:{action:'send',asset:A,to:'Other',toOther:v.slice(0,100)}).then(function(r){b.disabled=false;
+  SL.post(k?{action:'send',asset:A,to:k}:{action:'send',asset:A,to:'Other',toOther:v.slice(0,100)}).then(function(r){b.disabled=false;
    if(r.ok){msg('Sent'+(r.isr?' - '+r.isr:'')+'. It now shows as in transit.');setTimeout(load,1500)}else msg(r.message||'Not sent.',1)})
-  .catch(function(e){b.disabled=false;fail(e)})};
+  .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
 var c=document.getElementById('mvsig'),x=c.getContext('2d'),drawn=false,dn=false;
 function fit(){var r=c.getBoundingClientRect();if(!r.width)return;c.width=r.width*2;c.height=r.height*2;x.setTransform(2,0,0,2,0,0);x.lineWidth=2.2;x.lineCap='round';x.strokeStyle='#051233';drawn=false}
 function pt(e){var r=c.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]}
@@ -130,19 +149,31 @@ document.getElementById('mvclear').onclick=fit;
 document.getElementById('mvdeliver').onclick=function(){
   if(!drawn){msg('Please sign before confirming the delivery.',1);return}
   var b=this;b.disabled=true;msg('Recording delivery…');
-  post({action:'deliver',asset:A,name:document.getElementById('mvrecv').value.trim().slice(0,80),signature:c.toDataURL('image/png')}).then(function(r){b.disabled=false;
+  SL.post({action:'deliver',asset:A,name:document.getElementById('mvrecv').value.trim().slice(0,80),signature:c.toDataURL('image/png')}).then(function(r){b.disabled=false;
    if(r.ok){msg('Delivered. Thank you.');fit();setTimeout(load,1500)}else msg(r.message||'Not recorded.',1)})
-  .catch(function(e){b.disabled=false;fail(e)})};
+  .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
 new ResizeObserver(fit).observe(c);show('');
-if(window.MV_TEST_TOKEN){load();return}
-app=new msal.PublicClientApplication({auth:{clientId:box.dataset.client,
-  authority:'https://login.microsoftonline.com/'+box.dataset.tenant,redirectUri:box.dataset.redirect},
-  cache:{cacheLocation:'localStorage'}});
-app.initialize().then(function(){return app.handleRedirectPromise()}).then(function(r){
-  acct=(r&&r.account)||app.getAllAccounts()[0]||null;
-  if(acct){app.setActiveAccount(acct);load()}else{show('mvlogin');msg('Sign in with your Sofraco account to send or deliver this asset.')}
-}).catch(function(){show('mvlogin');msg('Sign-in did not finish. Try again.',1)});
+SL.gate(box,load);
 })();
-</script><div class="sec"><h2 class="mono">01 / Specifications</h2></div><dl class="spec"><dt>Location</dt><dd><a href="../../3-2/#p3" class="mono">3.2.3</a> · Cabinet 3, Shelf 2</dd><dt>Asset No</dt><dd><b class="mono">AM00848</b></dd><dt>Description</dt><dd>Nightvision Goggles</dd><dt>Make</dt><dd>Armasight</dd><dt>Model</dt><dd>NYX-7 PRO</dd><dt>Specifications</dt><dd>Night Vision Goggles, image intensifier tube, infrared illuminator, head-mount, adjustable focus, for low-light inspection</dd><dt>Category</dt><dd>Tools / Special/Custom</dd><dt>Status</dt><dd><span class="badge ok">Active</span></dd><dt>Whereabouts</dt><dd>Unknown</dd><dt>Requirement</dt><dd>Calibration not Required</dd></dl><div class="sec"><h2 class="mono">02 / Documents</h2></div><a class="btn alt" target="_blank" rel="noopener" href="https://sofraco.sharepoint.com/sites/AssetManagement/Shared Documents/01. Assets/AM00848">Manuals, datasheets &amp; all certificates</a><div class="hint">Asset folder in SharePoint · opens with your Sofraco sign-in</div></main>
-<footer><span>Sofraco Engineering Systems</span><span class="mono">Updated 05/11/2026 15:30</span></footer>
+</script><div class="sec"><h2 class="mono">Storage bay</h2><span class="mono">now 3.2.3</span></div><div id="bay" class="mv" data-asset="AM00848"><div class="gate" hidden><button class="btn" type="button">Sign in with Sofraco</button><div class="hint">Sign in once with your own Sofraco account to make changes.</div></div><div class="inner" hidden><div id="bayst" class="mvmsg"></div><label>Move to bay<input id="baynew" list="baylist" maxlength="11" autocomplete="off" inputmode="decimal" placeholder="Pick or type, e.g. 2.3.3"></label><datalist id="baylist"><option value="1.1.1"><option value="1.1.2"><option value="1.1.3"><option value="1.1.4"><option value="1.2.1"><option value="1.2.2"><option value="1.2.3"><option value="1.2.4"><option value="1.3.1"><option value="1.3.2"><option value="1.3.3"><option value="1.3.4"><option value="1.4.1"><option value="1.4.2"><option value="1.4.3"><option value="1.4.4"><option value="1.5.1"><option value="1.5.2"><option value="1.5.3"><option value="1.5.4"><option value="2.1.1"><option value="2.1.2"><option value="2.1.3"><option value="2.1.4"><option value="2.2.1"><option value="2.2.2"><option value="2.2.3"><option value="2.2.4"><option value="2.3.1"><option value="2.3.2"><option value="2.4.1"><option value="2.4.2"><option value="2.5.1"><option value="2.5.2"><option value="3.1.1"><option value="3.1.2"><option value="3.1.3"><option value="3.1.4"><option value="3.2.1"><option value="3.2.2"><option value="3.3.1"><option value="3.3.2"><option value="3.4.1"><option value="3.4.2"><option value="3.5.1"><option value="3.5.2"></datalist><button id="baymove" class="btn" type="button">Move to this bay</button><button id="bayremove" class="btn alt" type="button">Remove from this storage</button></div></div><script>
+(function(){
+var box=document.getElementById('bay');if(!box)return;
+var A=box.dataset.asset,st=document.getElementById('bayst');
+function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
+function done(r){if(r.ok)msg((r.message||'Done')+' The pages update in about a minute.');else msg(r.message||'Not changed.',1)}
+document.getElementById('baymove').onclick=function(){
+  var v=document.getElementById('baynew').value.trim();
+  if(!/^\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(v)){msg('Type the bay as Cabinet.Shelf.Bay, for example 2.3.3.',1);return}
+  var b=this;b.disabled=true;msg('Moving…');
+  SL.post({action:'move',asset:A,bay:v,location:SL.location}).then(function(r){b.disabled=false;done(r)})
+  .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
+document.getElementById('bayremove').onclick=function(){
+  if(!confirm('Take '+A+' off this storage layout? It stays in the Asset Register.'))return;
+  var b=this;b.disabled=true;msg('Removing…');
+  SL.post({action:'remove',asset:A}).then(function(r){b.disabled=false;done(r)})
+  .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
+SL.gate(box);
+})();
+</script><div class="sec"><h2 class="mono">01 / Specifications</h2></div><dl class="spec"><dt>Location</dt><dd><a href="../../3-2/#p3" class="mono">3.2.3</a> · Cabinet 3, Shelf 2</dd><dt>Asset No</dt><dd><b class="mono">AM00848</b></dd><dt>Description</dt><dd>Nightvision Goggles</dd><dt>Make</dt><dd>Armasight</dd><dt>Specifications</dt><dd>Night Vision Goggles, image intensifier tube, infrared illuminator, head-mount, adjustable focus, for low-light inspection</dd><dt>Category</dt><dd>Tools / Special/Custom</dd><dt>Status</dt><dd><span class="badge ok">Active</span></dd><dt>Whereabouts</dt><dd>Unknown</dd><dt>Requirement</dt><dd>Calibration not Required</dd></dl><div class="sec"><h2 class="mono">02 / Documents</h2></div><a class="btn alt" target="_blank" rel="noopener" href="https://sofraco.sharepoint.com/sites/AssetManagement/Shared Documents/01. Assets/AM00848">Manuals, datasheets &amp; all certificates</a><div class="hint">Asset folder in SharePoint · opens with your Sofraco sign-in</div></main>
+<footer><span>Sofraco Engineering Systems</span><span class="mono">Updated 05/11/2026 15:47</span></footer>
 </body></html>

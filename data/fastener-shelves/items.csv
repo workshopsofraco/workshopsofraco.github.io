@@ -1,0 +1,117 @@
+bin_location,item_code,description,make,model,image,category,thread_size,length_mm,qty,uom,reorder_point,stock_status
+,FSL-0001,M12 Standard Nut - Stainless Steel 316,,,FSL-0001,Nut,M12,,300,Each,,SET REORDER POINT
+,FSL-0002,M12 Nyloc Nut - Stainless Steel 316,,,FSL-0002,Nut,M12,,400,Each,,SET REORDER POINT
+,FSL-0003,M12 Spring Washer - Stainless Steel 316,,,FSL-0003,Washer,M12,,750,Each,,SET REORDER POINT
+,FSL-0004,M12 Flat Washer - Stainless Steel 316,,,FSL-0004,Washer,M12,,500,Each,,SET REORDER POINT
+,FSL-0005,M12 x 50 mm Socket Shoulder Screw - Stainless Steel 316,,,FSL-0005,Bolt/Screw,M12,50,50,Each,,SET REORDER POINT
+,FSL-0006,M12 x 20 mm Hex Head Screw - Stainless Steel 316,,,FSL-0006,Bolt/Screw,M12,20,50,Each,,SET REORDER POINT
+,FSL-0007,M12 x 25 mm Hex Head Screw - Stainless Steel 316,,,FSL-0007,Bolt/Screw,M12,25,50,Each,,SET REORDER POINT
+,FSL-0008,M12 x 25 mm Hex Head Screw - Unknown - Zinc,,,FSL-0008,Bolt/Screw,M12,25,40,Each,,SET REORDER POINT
+,FSL-0009,M12 x 30 mm Hex Head Screw - Stainless Steel 316,,,FSL-0009,Bolt/Screw,M12,30,,Each,,COUNT REQUIRED
+,FSL-0010,M12 x 35 mm Hex Head Screw - Stainless Steel 316,,,FSL-0010,Bolt/Screw,M12,35,100,Each,,SET REORDER POINT
+,FSL-0011,M12 x 40 mm Hex Head Screw - Stainless Steel 316,,,FSL-0011,Bolt/Screw,M12,40,60,Each,,SET REORDER POINT
+,FSL-0012,M12 x 50 mm Hex Head Screw - Stainless Steel 316,,,FSL-0012,Bolt/Screw,M12,50,20,Each,,SET REORDER POINT
+,FSL-0013,M12 x 50 mm Hex Head Screw - Stainless Steel 316,,,FSL-0013,Bolt/Screw,M12,50,35,Each,,SET REORDER POINT
+,FSL-0014,M12 x 100 mm Hex Head Screw - Stainless Steel 316,,,FSL-0014,Bolt/Screw,M12,100,50,Each,,SET REORDER POINT
+,FSL-0015,M12 x 100 mm Hex Head Screw - Stainless Steel 316,,,FSL-0015,Bolt/Screw,M12,100,40,Each,,SET REORDER POINT
+,FSL-0016,M12 x 60 mm Hex Head Screw - Stainless Steel 316,,,FSL-0016,Bolt/Screw,M12,60,50,Each,,SET REORDER POINT
+,FSL-0017,M12 x 90 mm Hex Head Screw - Stainless Steel 316,,,FSL-0017,Bolt/Screw,M12,90,7,Each,,SET REORDER POINT
+,FSL-0018,M12 x 20 mm Countersunk Socket Screw - Stainless Steel 316,,,FSL-0018,Bolt/Screw,M12,20,6,Each,,SET REORDER POINT
+,FSL-0019,M12 x 20 mm Countersunk Flat Head Screw - Stainless Steel 316,,,FSL-0019,Bolt/Screw,M12,20,15,Each,,SET REORDER POINT
+,FSL-0020,M12 x 40 mm Countersunk Socket Screw - Stainless Steel 316,,,FSL-0020,Bolt/Screw,M12,40,4,Each,,SET REORDER POINT
+,FSL-0021,M12 x 25 mm Socket Head Cap Screw - Stainless Steel 316,,,FSL-0021,Bolt/Screw,M12,25,45,Each,,SET REORDER POINT
+,FSL-0022,M12 x 35 mm Socket Head Cap Screw - Stainless Steel 316,,,FSL-0022,Bolt/Screw,M12,35,5,Each,,SET REORDER POINT
+,FSL-0023,M12 x 50 mm Socket Head Cap Screw - Stainless Steel 316,,,FSL-0023,Bolt/Screw,M12,50,40,Each,,SET REORDER POINT
+,FSL-0024,M12 x 60 mm Socket Head Cap Screw - Stainless Steel 316,,,FSL-0024,Bolt/Screw,M12,60,20,Each,,SET REORDER POINT
+,FSL-0025,M12 x 40 mm Socket Head Cap Screw - Stainless Steel 316,,,FSL-0025,Bolt/Screw,M12,40,7,Each,,SET REORDER POINT
+,FSL-0026,M12 x 35 mm Pan Head Screw - Stainless Steel 316,,,FSL-0026,Bolt/Screw,M12,35,11,Each,,SET REORDER POINT
+,FSL-0027,M12 x 50 mm Pan Head Screw - Stainless Steel 316,,,FSL-0027,Bolt/Screw,M12,50,8,Each,,SET REORDER POINT
+,FSL-0028,M14 Standard Nut - Stainless Steel 316,,,FSL-0028,Nut,M14,,50,Each,,SET REORDER POINT
+,FSL-0029,M14 Nyloc Nut - Stainless Steel 316,,,FSL-0029,Nut,M14,,60,Each,,SET REORDER POINT
+,FSL-0030,M14 Flat Washer - Stainless Steel 316,,,FSL-0030,Washer,M14,,200,Each,,SET REORDER POINT
+,FSL-0031,M14 Spring Washer - Stainless Steel 316,,,FSL-0031,Washer,M14,,75,Each,,SET REORDER POINT
+,FSL-0032,M14 x 40 mm Hex Head Screw - Stainless Steel 316,,,FSL-0032,Bolt/Screw,M14,40,1,Each,,SET REORDER POINT
+,FSL-0033,M14 x 50 mm Hex Head Screw - Stainless Steel 316,,,FSL-0033,Bolt/Screw,M14,50,5,Each,,SET REORDER POINT
+,FSL-0034,M14 x 65 mm Hex Head Screw - Stainless Steel 316,,,FSL-0034,Bolt/Screw,M14,65,1,Each,,SET REORDER POINT
+,FSL-0035,M14 x 90 mm Hex Head Screw - Stainless Steel 316,,,FSL-0035,Bolt/Screw,M14,90,2,Each,,SET REORDER POINT
+,FSL-0036,M14 x 125 mm Hex Head Screw - Stainless Steel 316,,,FSL-0036,Bolt/Screw,M14,125,3,Each,,SET REORDER POINT
+,FSL-0037,M14 x 45 mm Socket Head Cap Screw - Stainless Steel 316,,,FSL-0037,Bolt/Screw,M14,45,9,Each,,SET REORDER POINT
+,FSL-0038,M14 x 60 mm Socket Head Cap Screw - Stainless Steel 316,,,FSL-0038,Bolt/Screw,M14,60,3,Each,,SET REORDER POINT
+,FSL-0039,M14 x 80 mm Socket Head Cap Screw - Stainless Steel 316,,,FSL-0039,Bolt/Screw,M14,80,40,Each,,SET REORDER POINT
+,FSL-0040,M14 x 85 mm Cut Threaded Rod - Stainless Steel 316,,,FSL-0040,Threaded Rod,M14,85,40,Each,,SET REORDER POINT
+,FSL-0041,M14 x 90 mm Cut Threaded Rod - Stainless Steel 316,,,FSL-0041,Threaded Rod,M14,90,25,Each,,SET REORDER POINT
+,FSL-0042,M16 Standard Nut - Stainless Steel 316,,,FSL-0042,Nut,M16,,200,Each,,SET REORDER POINT
+,FSL-0043,M16 Nyloc Nut - Stainless Steel 316,,,FSL-0043,Nut,M16,,50,Each,,SET REORDER POINT
+,FSL-0044,M16 Flat Washer - Stainless Steel 316,,,FSL-0044,Washer,M16,,50,Each,,SET REORDER POINT
+,FSL-0045,M16 Spring Washer - Stainless Steel 316,,,FSL-0045,Washer,M16,,250,Each,,SET REORDER POINT
+,FSL-0046,M16 x 30 mm Hex Head Screw - Stainless Steel 316,,,FSL-0046,Bolt/Screw,M16,30,100,Each,,SET REORDER POINT
+,FSL-0047,M16 x 45 mm Hex Head Screw - Stainless Steel 316,,,FSL-0047,Bolt/Screw,M16,45,30,Each,,SET REORDER POINT
+,FSL-0048,M16 x 50 mm Hex Head Screw - Stainless Steel 316,,,FSL-0048,Bolt/Screw,M16,50,25,Each,,SET REORDER POINT
+,FSL-0049,M16 x 55 mm Hex Head Screw - Stainless Steel 316,,,FSL-0049,Bolt/Screw,M16,55,1,Each,,SET REORDER POINT
+,FSL-0050,M16 x 60 mm Hex Head Screw - Stainless Steel 316,,,FSL-0050,Bolt/Screw,M16,60,40,Each,,SET REORDER POINT
+,FSL-0051,M16 x 65 mm Hex Head Screw - Stainless Steel 316,,,FSL-0051,Bolt/Screw,M16,65,2,Each,,SET REORDER POINT
+,FSL-0052,M16 x 80 mm Hex Head Screw - Stainless Steel 316,,,FSL-0052,Bolt/Screw,M16,80,10,Each,,SET REORDER POINT
+,FSL-0053,M16 x 90 mm Hex Head Screw - Stainless Steel 316,,,FSL-0053,Bolt/Screw,M16,90,50,Each,,SET REORDER POINT
+,FSL-0054,M16 x 100 mm Hex Head Screw - Stainless Steel 316,,,FSL-0054,Bolt/Screw,M16,100,15,Each,,SET REORDER POINT
+,FSL-0055,M16 x 120 mm Hex Head Screw - Stainless Steel 316,,,FSL-0055,Bolt/Screw,M16,120,25,Each,,SET REORDER POINT
+,FSL-0056,M16 x 110 mm Hex Head Screw - Stainless Steel 316,,,FSL-0056,Bolt/Screw,M16,110,25,Each,,SET REORDER POINT
+,FSL-0057,M16 x 170 mm Hex Head Screw - Stainless Steel 316,,,FSL-0057,Bolt/Screw,M16,170,3,Each,,SET REORDER POINT
+,FSL-0058,M16 x 280 mm Hex Head Screw - Stainless Steel 316,,,FSL-0058,Bolt/Screw,M16,280,6,Each,,SET REORDER POINT
+,FSL-0059,M16 x 70 mm Hex Head Screw - Stainless Steel 316,,,FSL-0059,Bolt/Screw,M16,70,35,Each,,SET REORDER POINT
+,FSL-0060,M16 x 130 mm Hex Head Screw - Stainless Steel 316,,,FSL-0060,Bolt/Screw,M16,130,4,Each,,SET REORDER POINT
+,FSL-0061,M16 x 135 mm Hex Head Screw - Stainless Steel 316,,,FSL-0061,Bolt/Screw,M16,135,30,Each,,SET REORDER POINT
+,FSL-0062,M16 x 50 mm Countersunk Socket Screw - Stainless Steel 316,,,FSL-0062,Bolt/Screw,M16,50,20,Each,,SET REORDER POINT
+,FSL-0063,M16 x 110 mm Cut Threaded Rod - Stainless Steel 316,,,FSL-0063,Threaded Rod,M16,110,4,Each,,SET REORDER POINT
+,FSL-0064,M16 x 95 mm Cut Threaded Rod - Stainless Steel 316,,,FSL-0064,Threaded Rod,M16,95,4,Each,,SET REORDER POINT
+,FSL-0065,M16 x 25 mm Socket Head Cap Screw - Stainless Steel 316,,,FSL-0065,Bolt/Screw,M16,25,1,Each,,SET REORDER POINT
+,FSL-0066,M16 x 40 mm Socket Head Cap Screw - Stainless Steel 316,,,FSL-0066,Bolt/Screw,M16,40,50,Each,,SET REORDER POINT
+,FSL-0067,M16 x 50 mm Socket Head Cap Screw - Stainless Steel 316,,,FSL-0067,Bolt/Screw,M16,50,1,Each,,SET REORDER POINT
+,FSL-0068,M16 x 60 mm Socket Head Cap Screw - Stainless Steel 316,,,FSL-0068,Bolt/Screw,M16,60,2,Each,,SET REORDER POINT
+,FSL-0069,M16 x 75 mm Socket Head Cap Screw - Stainless Steel 316,,,FSL-0069,Bolt/Screw,M16,75,1,Each,,SET REORDER POINT
+,FSL-0070,M16 x 120 mm Socket Head Cap Screw - Stainless Steel 316,,,FSL-0070,Bolt/Screw,M16,120,12,Each,,SET REORDER POINT
+,FSL-0071,M16 x 70 mm Socket Head Cap Screw - Stainless Steel 316,,,FSL-0071,Bolt/Screw,M16,70,1,Each,,SET REORDER POINT
+,FSL-0072,M16 x 65 mm Socket Head Cap Screw - Stainless Steel 316,,,FSL-0072,Bolt/Screw,M16,65,8,Each,,SET REORDER POINT
+,FSL-0073,M16 x 60 mm Fan Bolt Hex Screw (source wording) - Stainless Steel 316,,,FSL-0073,Bolt/Screw,M16,60,40,Each,,SET REORDER POINT
+,FSL-0074,M16 x 85 mm Cut Threaded Rod - Stainless Steel 316,,,FSL-0074,Threaded Rod,M16,85,11,Each,,SET REORDER POINT
+,FSL-0075,M16 x 100 mm Cut Threaded Rod - Stainless Steel 316,,,FSL-0075,Threaded Rod,M16,100,5,Each,,SET REORDER POINT
+,FSL-0076,M16 x 110 mm Cut Threaded Rod - Stainless Steel 316,,,FSL-0076,Threaded Rod,M16,110,8,Each,,SET REORDER POINT
+,FSL-0077,M16 x 120 mm Cut Threaded Rod - Stainless Steel 316,,,FSL-0077,Threaded Rod,M16,120,15,Each,,SET REORDER POINT
+,FSL-0078,M16 x 125 mm Cut Threaded Rod - Stainless Steel 316,,,FSL-0078,Threaded Rod,M16,125,20,Each,,SET REORDER POINT
+,FSL-0079,M18 Flat Washer - Stainless Steel 316,,,FSL-0079,Washer,M18,,10,Each,,SET REORDER POINT
+,FSL-0080,M18 Spring Washer - Stainless Steel 316,,,FSL-0080,Washer,M18,,45,Each,,SET REORDER POINT
+,FSL-0081,M18 x 40 mm Hex Head Screw - Stainless Steel 316,,,FSL-0081,Bolt/Screw,M18,40,35,Each,,SET REORDER POINT
+,FSL-0082,M18 x 50 mm Hex Head Screw - Stainless Steel 316,,,FSL-0082,Bolt/Screw,M18,50,20,Each,,SET REORDER POINT
+,FSL-0083,M18 x 60 mm Hex Head Screw - Stainless Steel 316,,,FSL-0083,Bolt/Screw,M18,60,40,Each,,SET REORDER POINT
+,FSL-0084,M18 x 200 mm Hex Head Screw - Stainless Steel 316,,,FSL-0084,Bolt/Screw,M18,200,20,Each,,SET REORDER POINT
+,FSL-0085,M22 Nyloc Nut - Stainless Steel 316,,,FSL-0085,Nut,M22,,150,Each,,SET REORDER POINT
+,FSL-0086,M22 Flat Washer - Stainless Steel 316,,,FSL-0086,Washer,M22,,300,Each,,SET REORDER POINT
+,FSL-0087,M22 x 30 mm Hex Head Screw - Stainless Steel 316,,,FSL-0087,Bolt/Screw,M22,30,1,Each,,SET REORDER POINT
+,FSL-0088,M22 x 80 mm Hex Head Screw - Stainless Steel 316,,,FSL-0088,Bolt/Screw,M22,80,20,Each,,SET REORDER POINT
+,FSL-0089,M22 x 100 mm Hex Head Screw - Stainless Steel 316,,,FSL-0089,Bolt/Screw,M22,100,10,Each,,SET REORDER POINT
+,FSL-0090,M22 x 120 mm Hex Head Screw - Stainless Steel 316,,,FSL-0090,Bolt/Screw,M22,120,12,Each,,SET REORDER POINT
+,FSL-0091,M27 Flat Washer - Stainless Steel 316,,,FSL-0091,Washer,M27,,50,Each,,SET REORDER POINT
+,FSL-0092,M27 Standard Nut - Stainless Steel 316,,,FSL-0092,Nut,M27,,30,Each,,SET REORDER POINT
+,FSL-0093,M27 Nyloc Nut - Stainless Steel 316,,,FSL-0093,Nut,M27,,30,Each,,SET REORDER POINT
+,FSL-0094,M27 x 70 mm Hex Head Screw - Stainless Steel 316,,,FSL-0094,Bolt/Screw,M27,70,5,Each,,SET REORDER POINT
+,FSL-0095,M27 x 80 mm Hex Head Screw - Stainless Steel 316,,,FSL-0095,Bolt/Screw,M27,80,35,Each,,SET REORDER POINT
+,FSL-0096,M27 x 60 mm Hex Head Screw - Stainless Steel 316,,,FSL-0096,Bolt/Screw,M27,60,1,Each,,SET REORDER POINT
+,FSL-0097,M27 x 100 mm Hex Head Screw - Stainless Steel 316,,,FSL-0097,Bolt/Screw,M27,100,8,Each,,SET REORDER POINT
+,FSL-0098,M27 x 110 mm Hex Head Screw - Stainless Steel 316,,,FSL-0098,Bolt/Screw,M27,110,15,Each,,SET REORDER POINT
+,FSL-0099,M27 x 150 mm Hex Head Screw - Stainless Steel 316,,,FSL-0099,Bolt/Screw,M27,150,1,Each,,SET REORDER POINT
+,FSL-0100,M27 x 75 mm Socket Head Cap Screw - Stainless Steel 316,,,FSL-0100,Bolt/Screw,M27,75,20,Each,,SET REORDER POINT
+,FSL-0101,M20 Standard Nut - Stainless Steel 316,,,FSL-0101,Nut,M20,,200,Each,,SET REORDER POINT
+,FSL-0102,M20 Standard Nut - Unknown - Galvanised,,,FSL-0102,Nut,M20,,100,Each,,SET REORDER POINT
+,FSL-0103,M20 Flat Washer - Stainless Steel 316,,,FSL-0103,Washer,M20,,500,Each,,SET REORDER POINT
+,FSL-0104,M20 Spring Washer - Stainless Steel 316,,,FSL-0104,Washer,M20,,400,Each,,SET REORDER POINT
+,FSL-0105,M20 Nyloc Nut - Stainless Steel 316,,,FSL-0105,Nut,M20,,100,Each,,SET REORDER POINT
+,FSL-0106,M20 x 30 mm Hex Head Screw - Stainless Steel 316,,,FSL-0106,Bolt/Screw,M20,30,60,Each,,SET REORDER POINT
+,FSL-0107,M20 x 35 mm Hex Head Screw - Stainless Steel 316,,,FSL-0107,Bolt/Screw,M20,35,175,Each,,SET REORDER POINT
+,FSL-0108,M20 x 40 mm Hex Head Screw - Stainless Steel 316,,,FSL-0108,Bolt/Screw,M20,40,65,Each,,SET REORDER POINT
+,FSL-0109,M20 x 45 mm Hex Head Screw - Stainless Steel 316,,,FSL-0109,Bolt/Screw,M20,45,40,Each,,SET REORDER POINT
+,FSL-0110,M20 x 50 mm Hex Head Screw - Stainless Steel 316,,,FSL-0110,Bolt/Screw,M20,50,12,Each,,SET REORDER POINT
+,FSL-0111,M20 x 55 mm Hex Head Screw - Stainless Steel 316,,,FSL-0111,Bolt/Screw,M20,55,30,Each,,SET REORDER POINT
+,FSL-0112,M20 x 60 mm Hex Head Screw - Stainless Steel 316,,,FSL-0112,Bolt/Screw,M20,60,35,Each,,SET REORDER POINT
+,FSL-0113,M20 x 70 mm Hex Head Screw - Stainless Steel 316,,,FSL-0113,Bolt/Screw,M20,70,60,Each,,SET REORDER POINT
+,FSL-0114,M20 x 80 mm Hex Head Screw - Stainless Steel 316,,,FSL-0114,Bolt/Screw,M20,80,50,Each,,SET REORDER POINT
+,FSL-0115,M20 x 90 mm Hex Head Screw - Stainless Steel 316,,,FSL-0115,Bolt/Screw,M20,90,100,Each,,SET REORDER POINT
+,FSL-0116,M20 x 100 mm Hex Head Screw - Stainless Steel 316,,,FSL-0116,Bolt/Screw,M20,100,9,Each,,SET REORDER POINT

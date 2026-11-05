@@ -1,0 +1,48 @@
+# Rebuilds the storage layout pages whenever anything lands on main - in particular the
+# data/<slug>/layout.json snapshot the "EDT - Asset Page Actions" flow commits after every
+# change made on a page (place, move, remove, add/remove bay, send, deliver) - and publishes.
+name: Build and publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pillow "qrcode[pil]" reportlab
+      - name: Build pages and PDFs
+        run: python tools/build.py --no-pull --pdfs
+      - name: Keep the built files in the repository
+        run: |
+          git config user.name "Sofraco Workshop"
+          git config user.email "workshop@sofraco.com.au"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -q -m "Rebuild storage layouts"
+            git pull -q --rebase origin main
+            git push -q origin HEAD:main
+          fi
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deploy
+        uses: actions/deploy-pages@v4

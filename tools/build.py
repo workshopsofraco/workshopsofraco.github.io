@@ -1,0 +1,1088 @@
+#!/usr/bin/env python3
+"""
+Storage layouts: one web page per storage location (cabinet, shelving bay, store...),
+one per shelf and one per asset, plus the QR codes that point at them.
+
+This file lives in the site repository (workshopsofraco/workshopsofraco.github.io) and
+runs in two places:
+  - GitHub Actions, on every push of data/*/layout.json (the flow commits one after each
+    change made on a page): rebuilds the pages and the printable PDFs.
+  - Hugo's PC, for refreshes and checks.
+
+Where an asset sits is held in the Asset Register (AM-R055): Storage Location (which
+storage) and Storage Bay (Cabinet.Shelf.Position, e.g. 2.3.3; several assets may share
+a bay). Bays that exist, including empty ones, are in the SharePoint list
+"SLB - Storage Layout Bays". data/<slug>/layout.json is the snapshot of both.
+Locations without the register (fastener shelves) still use data/<slug>/items.csv.
+
+  python tools/build.py                 build the site + QR codes
+  python tools/build.py --refresh       first snapshot the register, bays, transit state
+                                        and photos (signed-in browser, PC only)
+  python tools/build.py --publish       build, then commit and push
+  python tools/build.py --check         every live page 200 + every QR decodes to it
+"""
+
+import argparse
+import csv
+import datetime as dt
+import html
+import re
+import json
+import os
+import shutil
+import subprocess
+import sys
+from collections import OrderedDict
+
+import qrcode
+from PIL import Image
+
+TOOLS = os.path.dirname(os.path.abspath(__file__))
+SITE = os.path.dirname(TOOLS)                 # the repository root is the published site
+DATA = os.path.join(SITE, "data")
+REGISTRY = os.path.join(DATA, "locations.json")
+LOGO = os.path.join(DATA, "logo_full.png")
+IMAGES = os.path.join(DATA, "images")
+SIGNERS = os.path.join(DATA, "signers.json")
+WORKSPACE = os.environ.get("SOFRACO_WORKSPACE",
+                           os.path.join(os.environ.get("USERPROFILE", ""), r"OneDrive\B.R.A.I.N\AI"))
+FSL_SITE = "https://sofraco.sharepoint.com/sites/Purchasing"
+FSL_LIST = "a229ce0f-cd0b-402d-9c21-c9101f4a56ba"
+BAY_RE = re.compile(r"^\d{1,3}\.\d{1,3}\.\d{1,3}$")
+
+esc = html.escape
+
+
+def ws(path):
+    return os.path.join(SITE, *path.split("/"))
+
+
+def ldir(loc, *parts):
+    return os.path.join(DATA, loc["slug"], *parts)
+
+
+# ------------------------------------------------------------------ data
+def load_layout(loc):
+    p = ldir(loc, "layout.json")
+    return json.load(open(p, encoding="utf-8")) if os.path.exists(p) else {"bays": [], "assets": []}
+
+
+def asset_title(a):
+    """Make + model + register description, without repeating words already there."""
+    desc = (a.get("Desc2") or "").strip()
+    lead = [x for x in (a.get("Make"), a.get("Model")) if x and x.lower() not in desc.lower()]
+    return " ".join(lead + [desc]).strip() or a.get("AssetNumber", "")
+
+
+def bay_key(bay):
+    return [int(x) for x in bay.split(".")]
+
+
+def load_items(loc):
+    if loc.get("asset_register"):
+        lay = load_layout(loc)
+        fb = {}
+        p = ldir(loc, "image_fallback.json")
+        if os.path.exists(p):
+            fb = json.load(open(p, encoding="utf-8"))
+        rows, used = [], set()
+        for a in lay.get("assets", []):
+            am = (a.get("AssetNumber") or "").strip().upper()
+            bay = (a.get("StorageBay") or "").strip()
+            rows.append({"bin_location": bay if BAY_RE.match(bay) else "", "ref": am, loc["ref_col"]: am,
+                         "description": asset_title(a), "make": a.get("Make") or "", "model": a.get("Model") or "",
+                         "image": fb.get(am, ""), "_reg": a, "transit": a.get("transit")})
+            used.add(bay)
+        for bay in lay.get("bays", []):
+            if BAY_RE.match(bay) and bay not in used:
+                rows.append({"bin_location": bay, "ref": "", "description": ""})
+        return rows
+    with open(ws(loc["csv"]), newline="", encoding="utf-8-sig") as f:
+        rows = [{k: (v or "").strip() for k, v in r.items()} for r in csv.DictReader(f)]
+    for r in rows:
+        r["ref"] = r.get(loc["ref_col"], "")
+    return rows
+
+
+def build_tree(items):
+    """({bin: {shelf: {pos: [items]}}}, [unplaced items]) in numeric order."""
+    tree, unplaced = {}, []
+    for it in items:
+        if not it.get("bin_location"):
+            if it.get("description"):
+                unplaced.append(it)
+            continue
+        b, s, p = (int(x) for x in it["bin_location"].split("."))
+        tree.setdefault(b, {}).setdefault(s, {}).setdefault(p, [])
+        if it.get("description"):
+            tree[b][s][p].append(it)
+    ordered = OrderedDict()
+    for b in sorted(tree):
+        ordered[b] = OrderedDict()
+        for s in sorted(tree[b]):
+            ordered[b][s] = OrderedDict((p, tree[b][s].get(p, [])) for p in range(1, max(tree[b][s]) + 1))
+    return ordered, unplaced
+
+
+def shelf_key(b, s):
+    return f"{b}.{s}"
+
+
+def shelf_slug(b, s):
+    return f"{b}-{s}"
+
+
+def url_for(base, loc, b=None, s=None):
+    u = base + loc["slug"] + "/"
+    return u if b is None else u + shelf_slug(b, s) + "/"
+
+
+# ---------------------------------------------------------------- images
+def find_image(loc, stem, ref=""):
+    """data/images/<AM>_OEM.* (the Asset Register photo) first, then the location's own photo."""
+    names = ([ref + "_OEM"] if ref else []) + ([stem] if stem else [])
+    for n in names:
+        for ext in (".webp", ".png", ".jpg", ".jpeg"):
+            p = os.path.join(IMAGES, n + ext)
+            if os.path.exists(p):
+                return p
+    return None
+
+
+def export_image(loc, stem, ref=""):
+    """Web copy (max 640px webp) into <slug>/img/. Returns the file name."""
+    src = find_image(loc, stem, ref)
+    if not src:
+        return None
+    name = os.path.splitext(os.path.basename(src))[0].replace(" ", "_") + ".webp"
+    dst = os.path.join(SITE, loc["slug"], "img", name)
+    if not os.path.exists(dst) or os.path.getmtime(dst) < os.path.getmtime(src):
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        im = Image.open(src)
+        im = im.convert("RGBA") if im.mode in ("P", "LA", "RGBA") else im.convert("RGB")
+        im.thumbnail((640, 640))
+        im.save(dst, "WEBP", quality=82)
+    return name
+
+
+def fastener_svg(it):
+    """Line drawing for a fastener with no photo (ported from Bay Bolt Buddy)."""
+    cat = (it.get("category") or it.get("description", "")).lower()
+    stroke = 'stroke="currentColor" fill="none" stroke-width="3"'
+    if "washer" in cat:
+        body = f'<circle cx="100" cy="60" r="42" {stroke}/><circle cx="100" cy="60" r="16" {stroke}/>'
+    elif "nut" in cat:
+        body = (f'<polygon points="58,60 79,24 121,24 142,60 121,96 79,96" {stroke}/>'
+                f'<circle cx="100" cy="60" r="18" {stroke}/>')
+    else:
+        try:
+            length = float(it.get("length_mm") or 40)
+        except ValueError:
+            length = 40
+        shank = max(40, min(150, length * 1.4))
+        x0 = 100 - (shank + 26) / 2
+        head = "" if "rod" in cat else f'<rect x="{x0:.0f}" y="34" width="26" height="52" {stroke}/>'
+        sx = x0 + (0 if "rod" in cat else 26)
+        threads = "".join(f'<line x1="{x:.0f}" y1="46" x2="{x + 4:.0f}" y2="74" stroke="currentColor" stroke-width="1.2" opacity=".5"/>'
+                          for x in range(int(sx + 6), int(sx + shank - 4), 6))
+        body = head + f'<rect x="{sx:.0f}" y="46" width="{shank:.0f}" height="28" {stroke}/>' + threads
+    return f'<svg viewBox="0 0 200 120" class="draw" role="img" aria-label="{esc(it.get("description", ""))}">{body}</svg>'
+
+
+# ------------------------------------------------------------------ html
+CSS = """
+:root{--deep:#051233;--blue:#2878F5;--grey:#828C96;--panel:#F2F7FF;--rule:#C9D6EA;--ink:#0B1220;--red:#C62828;--bg:#fff}
+*{box-sizing:border-box}[hidden]{display:none!important}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.35}
+.mono{font-family:'JetBrains Mono',ui-monospace,Consolas,monospace}
+header{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.96);border-bottom:1px solid var(--rule)}
+.hd{max-width:1180px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.hd img{height:26px;width:auto}
+.hd .t{text-align:right;min-width:0}
+.hd h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--deep);text-transform:uppercase}
+.hd .sub{font-size:10px;letter-spacing:.14em;color:var(--grey);text-transform:uppercase}
+main{max-width:1180px;margin:0 auto;padding:18px 16px 40px}
+.crumb{font-size:12px;margin:0 0 14px}.crumb a{color:var(--blue);text-decoration:none}
+.sec{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--deep);padding-bottom:6px;margin:26px 0 12px;gap:8px}
+.sec h2{margin:0;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:600}
+.sec span{font-size:11px;color:var(--grey)}
+.bins{display:grid;gap:16px}
+@media(min-width:900px){.bins{grid-template-columns:repeat(var(--n),1fr)}}
+.bin{border:1px solid var(--rule)}
+.binhd{background:var(--deep);color:#fff;font-weight:700;letter-spacing:.12em;padding:8px 12px;text-transform:uppercase;font-size:13px}
+.shelf{border-top:1px solid var(--rule);padding:8px}
+.shelf:nth-child(odd){background:var(--panel)}
+.shelf>a.sh{display:flex;justify-content:space-between;align-items:center;text-decoration:none;color:var(--deep);font-weight:700;font-size:13px;margin:0 2px 6px}
+.shelf>a.sh small{color:var(--blue);font-weight:600}
+.slots{display:grid;grid-template-columns:repeat(var(--p),minmax(0,1fr));gap:6px}
+.slot{background:#fff;border:1px solid var(--rule);padding:6px;display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
+.slot .ph{height:64px;width:100%;display:flex;align-items:flex-end;justify-content:center}
+.slot .ph img{max-height:64px;max-width:100%;object-fit:contain}
+.code{color:var(--blue);font-weight:800}
+.slot .code{font-size:14px;margin-top:4px}
+.ref{font-weight:700;font-size:11px}
+.desc{font-size:10.5px;color:#333;overflow-wrap:break-word;hyphens:auto}
+.free{color:var(--grey);font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin:auto 0}
+.draw{width:100%;height:100%;color:var(--deep)}
+.slot .draw{height:64px}
+/* shelf page */
+.strip{display:grid;grid-template-columns:repeat(var(--p),1fr);gap:6px;border:1px solid var(--rule);padding:8px;background:var(--panel)}
+.strip a{display:block;text-align:center;padding:10px 0;border:1.5px solid var(--deep);background:#fff;color:var(--deep);text-decoration:none;font-weight:800}
+.strip a.empty{border-style:dashed;color:var(--grey)}
+.cards{display:grid;gap:12px}
+@media(min-width:700px){.cards{grid-template-columns:repeat(2,1fr)}}
+.card{border:1px solid var(--rule);padding:14px;display:flex;gap:14px;align-items:center;scroll-margin-top:70px}
+.card .ph{flex:0 0 120px;height:120px;display:flex;align-items:center;justify-content:center}
+.card .ph img{max-width:120px;max-height:120px;object-fit:contain}
+.card .code{font-size:24px;line-height:1}
+.card .ref{font-size:15px;margin-top:4px}
+.card .desc{font-size:14px;margin-top:4px}
+.card .mm{font-size:12px;color:var(--grey);margin-top:4px}
+.metrics{display:flex;gap:16px;margin-top:8px}
+.metrics div{display:flex;flex-direction:column}.metrics b{font-size:18px}.metrics span{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--grey)}
+.low b,.low span{color:var(--red)}
+.card.free{border-style:dashed;justify-content:center;color:var(--grey)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--deep);color:#fff;text-align:left;padding:6px 8px;font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+td{border-bottom:1px solid var(--rule);padding:6px 8px;vertical-align:top}
+tr:nth-child(even) td{background:var(--panel)}
+td.c{white-space:nowrap}td a{color:var(--blue);font-weight:700;text-decoration:none}
+.note{border:1px solid var(--rule);background:var(--panel);padding:12px;font-size:13px}
+.idx a{display:flex;justify-content:space-between;border:1px solid var(--rule);padding:14px;margin-bottom:8px;text-decoration:none;color:var(--deep);font-weight:700}
+.plain{text-decoration:none;color:inherit}.slot>a.plain{display:flex;flex-direction:column;align-items:center;width:100%}
+.slot .ref a{color:var(--ink);text-decoration:none}
+.more{font-size:12px;color:var(--blue);font-weight:600;margin-top:8px}
+.hero{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.hero .ph{flex:0 0 200px;height:200px;display:flex;align-items:center;justify-content:center}
+.hero .ph img{max-width:200px;max-height:200px;object-fit:contain}
+.hero .code{font-size:30px}.hero .desc{font-size:17px;margin-top:6px}
+dl.spec{display:grid;grid-template-columns:max-content 1fr;margin:0;border:1px solid var(--rule)}
+dl.spec dt,dl.spec dd{margin:0;padding:8px 10px;border-bottom:1px solid var(--rule)}
+dl.spec dt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);background:var(--panel)}
+.badge{display:inline-block;padding:2px 8px;font-size:12px;font-weight:700;border-radius:2px;background:var(--panel);color:var(--deep)}
+.badge.ok{background:#E3F4E8;color:#1B6B34}.badge.bad{background:#FDE7E7;color:var(--red)}
+a.btn,button.btn{display:block;text-align:center;background:var(--deep);color:#fff;text-decoration:none;font-weight:700;padding:14px;margin-top:10px}
+a.btn.alt,button.btn.alt{background:#fff;color:var(--deep);border:1.5px solid var(--deep)}
+.hint{font-size:11px;color:var(--grey);margin-top:6px}
+.mv{border:1px solid var(--rule);background:var(--panel);padding:12px}
+.mv label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);margin-top:10px}
+.mv select,.mv input{display:block;width:100%;font:inherit;font-size:16px;padding:10px;margin-top:4px;border:1px solid var(--rule);background:#fff;color:var(--ink);text-transform:none;letter-spacing:0}
+.mv canvas{display:block;width:100%;height:160px;background:#fff;border:1px dashed var(--deep);margin-top:4px;touch-action:none}
+.mv button.btn{width:100%;border:0;font:inherit;font-weight:700;cursor:pointer}.mv button.btn.alt{border:1.5px solid var(--deep)}
+.mvmsg{font-size:14px;font-weight:600;color:var(--deep)}.mvmsg.bad{color:var(--red)}
+.mvroute{font-size:15px;font-weight:700;margin-top:6px}
+.slot .mini{display:flex;flex-direction:column;align-items:center;width:100%;text-decoration:none;color:inherit;padding:4px 2px;border:1px solid var(--rule);background:#fff;margin-top:6px}
+.slot .mini .ref{font-size:11px;margin-top:4px}
+.mini.transit,.card.transit{background:#FFF4E5;border:2px solid #F59E0B}
+.tr{font-size:10.5px;font-weight:800;color:#B45309;margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
+.card .tr{font-size:12px}
+.note.transit{background:#FFF4E5;border-color:#F59E0B;color:#7C2D12;margin-top:12px}
+.mv .gate .btn{margin-top:0}footer{max-width:1180px;margin:0 auto;padding:14px 16px 30px;border-top:1px solid var(--rule);font-size:11px;color:var(--grey);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+"""
+
+
+def page(title, h1, sub, body, depth, updated):
+    up = "../" * depth
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{esc(title)} - Sofraco</title><meta name="robots" content="noindex">
+<link rel="icon" href="{up}logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>{CSS}</style></head><body>
+<header><div class="hd"><img src="{up}logo.png" alt="Sofraco"><div class="t"><h1>{esc(h1)}</h1><div class="sub mono">{esc(sub)}</div></div></div></header>
+<main>{body}</main>
+<footer><span>Sofraco Engineering Systems</span><span class="mono">Updated {updated}</span></footer>
+</body></html>"""
+
+
+def photo(loc, it, cls="ph"):
+    name = export_image(loc, it.get("image"), it.get("ref", ""))
+    if name:
+        return f'<div class="{cls}"><img src="img/{esc(name)}" alt="{esc(it["description"])}" loading="lazy"></div>'
+    if loc.get("source") == "fsl":
+        return f'<div class="{cls}">{fastener_svg(it)}</div>'
+    return f'<div class="{cls}"></div>'
+
+
+def metrics(it):
+    out = []
+    if it.get("qty"):
+        low = it.get("reorder_point") and it["qty"].replace(".", "", 1).isdigit() and \
+            float(it["qty"]) <= float(it["reorder_point"] or 0)
+        out.append(f'<div class="{"low" if low else ""}"><b>{esc(it["qty"])}</b><span>On hand</span></div>')
+    if it.get("reorder_point"):
+        out.append(f'<div><b>{esc(it["reorder_point"])}</b><span>Reorder pt</span></div>')
+    return f'<div class="metrics mono">{"".join(out)}</div>' if out else ""
+
+
+def cabinet_body(loc, tree, unplaced, items):
+    n_items = sum(1 for i in items if i.get("description"))
+    body = []
+    if tree:
+        body.append(f'<div class="sec"><h2 class="mono">01 / Layout</h2><span class="mono">{len(tree)} {loc["unit_word"].lower()}s · {n_items} items</span></div>')
+        body.append(f'<div class="bins" style="--n:{len(tree)}">')
+        for b, shelves in tree.items():
+            body.append(f'<section class="bin"><div class="binhd">{loc["unit_word"]} {b}</div>')
+            for s, slots in shelves.items():
+                body.append(f'<div class="shelf"><a class="sh" href="../{loc["slug"]}/{shelf_slug(b, s)}/">'
+                            f'<span>Shelf {b}.{s}</span><small>Open shelf ›</small></a>'
+                            f'<div class="slots" style="--p:{len(slots)}">')
+                for p, its in slots.items():
+                    body.append(slot_cell(loc, b, s, p, its))
+                body.append('</div></div>')
+            body.append('</section>')
+        body.append('</div>')
+    if unplaced:
+        body.append(f'<div class="sec"><h2 class="mono">{"02" if tree else "01"} / Not yet placed</h2><span class="mono">{len(unplaced)} items</span></div>')
+        body.append('<div class="note">These items are on the list but have no shelf position yet. '
+                    'Once each one is given a position (bay.shelf.slot) it appears on the layout above and on its shelf page.</div>')
+        body.append(register_table(loc, unplaced, link=False))
+    if tree:
+        placed = [i for i in items if i.get("bin_location") and i.get("description")]
+        body.append(f'<div class="sec"><h2 class="mono">{"03" if unplaced else "02"} / Register</h2><span class="mono">{len(placed)} rows</span></div>')
+        body.append(register_table(loc, placed, link=True))
+    return "".join(body)
+
+
+def item_href(loc, it, b, s, p, prefix):
+    """Asset page when the location has one, else the item on its shelf page."""
+    if loc.get("asset_register") and it.get("ref"):
+        return f'{prefix}asset/{it["ref"]}/'
+    return f'{prefix}{shelf_slug(b, s)}/#p{p}' if prefix == "" else f"#p{p}"
+
+
+def transit_note(tr):
+    """Hugo 05/11/2026: an asset sent on but not yet signed for shows in colour."""
+    if not tr:
+        return ""
+    return f'<div class="tr">In transit → {esc(tr.get("to") or "?")} · not signed yet</div>'
+
+
+def mini_card(loc, it, b, s, p):
+    href = item_href(loc, it, b, s, p, "")
+    return (f'<a class="mini{" transit" if it.get("transit") else ""}" href="{href}">{photo(loc, it)}'
+            f'<div class="ref mono">{esc(it["ref"])}</div><div class="desc">{esc(it["description"])}</div>'
+            f'{transit_note(it.get("transit"))}</a>')
+
+
+def slot_cell(loc, b, s, p, its):
+    """Hugo 05/11/2026: each asset in a bay is its own card with its photo."""
+    code = f"{b}.{s}.{p}"
+    if not its:
+        return f'<div class="slot"><div class="code mono">{code}</div><div class="free">Free slot</div></div>'
+    return f'<div class="slot"><div class="code mono">{code}</div>{"".join(mini_card(loc, i, b, s, p) for i in its)}</div>'
+
+
+def register_table(loc, rows, link):
+    extra_qty = any(r.get("qty") for r in rows)
+    head = f'<tr><th>Location</th><th>{esc(loc["ref_label"])}</th><th>Description</th>' + \
+        ("<th>Qty</th>" if extra_qty else "<th>Make / Model</th>") + "</tr>"
+    out = [f'<table>{head}']
+    for r in rows:
+        locn = r.get("bin_location") or "-"
+        if link and r.get("bin_location"):
+            b, s, p = r["bin_location"].split(".")
+            locn = f'<a href="../{loc["slug"]}/{b}-{s}/#p{p}">{esc(locn)}</a>'
+        last = esc(r.get("qty", "")) if extra_qty else esc(" ".join(x for x in (r.get("make"), r.get("model")) if x))
+        ref = esc(r["ref"])
+        if loc.get("asset_register") and r["ref"]:
+            ref = f'<a href="asset/{ref}/">{ref}</a>'
+        out.append(f'<tr><td class="c mono">{locn}</td><td class="c mono">{ref}</td>'
+                   f'<td>{esc(r["description"])}</td><td>{last}</td></tr>')
+    out.append("</table>")
+    return "".join(out)
+
+
+def shelf_body(loc, b, s, slots):
+    body = [f'<p class="crumb mono"><a href="../">‹ {esc(loc["title"])}</a></p>',
+            f'<div class="sec"><h2 class="mono">01 / Shelf positions</h2><span class="mono">{loc["unit_word"]} {b} · Shelf {s}</span></div>',
+            f'<div class="strip" style="--p:{len(slots)}">']
+    for p, its in slots.items():
+        body.append(f'<a class="mono{"" if its else " empty"}" href="#p{p}">{b}.{s}.{p}</a>')
+    body.append('</div>')
+    count = sum(len(v) for v in slots.values())
+    body.append(f'<div class="sec"><h2 class="mono">02 / What belongs here</h2><span class="mono">{count} items</span></div><div class="cards">')
+    for p, its in slots.items():
+        code = f"{b}.{s}.{p}"
+        if not its:
+            body.append(f'<div class="card free" id="p{p}"><span class="code mono">{code}</span>&nbsp; Free slot</div>')
+        for k, it in enumerate(its):
+            mm = " ".join(x for x in (it.get("make"), it.get("model")) if x)
+            linked = loc.get("asset_register") and it["ref"]
+            tag, href = ("a", f' href="../asset/{esc(it["ref"])}/"') if linked else ("article", "")
+            body.append(f'<{tag} class="card plain{" transit" if it.get("transit") else ""}"{href}{f" id=p{p}" if k == 0 else ""}>{photo(loc, it)}<div>'
+                        f'<div class="code mono">{code}</div><div class="ref mono">{esc(loc["ref_label"])}: {esc(it["ref"] or "-")}</div>'
+                        f'<div class="desc">{esc(it["description"])}</div>'
+                        f'{f"<div class=mm>{esc(mm)}</div>" if mm else ""}{metrics(it)}'
+                        f'{transit_note(it.get("transit"))}'
+                        f'{"<div class=more>Specifications &amp; calibration ›</div>" if linked else ""}</div></{tag}>')
+    body.append('</div>')
+    body.append(shelf_panel(loc, b, s, slots))
+    return "".join(body)
+
+
+SP = "https://sofraco.sharepoint.com"
+MONTHS = {m: i for i, m in enumerate("JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC".split(), 1)}
+
+
+def cert_date(name):
+    """Sort key for a certificate file name: EXP_dd-mm-yyyy, yyyy-MON-dd or yyyy-mm-dd."""
+    import re
+    m = re.search(r"(\d{2})[-_.](\d{2})[-_.](\d{4})", name)
+    if m:
+        return (int(m[3]), int(m[2]), int(m[1]))
+    m = re.search(r"(\d{4})[-_.]([A-Za-z]{3})[-_.](\d{1,2})", name)
+    if m and m[2].upper() in MONTHS:
+        return (int(m[1]), MONTHS[m[2].upper()], int(m[3]))
+    m = re.search(r"(\d{4})[-_.](\d{2})[-_.](\d{1,2})", name)
+    return (int(m[1]), int(m[2]), int(m[3])) if m else (0, 0, 0)
+
+
+def quote_url(text):
+    from urllib.parse import quote
+    return quote(text, safe="")
+
+
+def au_date(iso):
+    if not iso:
+        return ""
+    d = dt.datetime.fromisoformat(iso.replace("Z", "+00:00")).astimezone(dt.timezone(dt.timedelta(hours=11)))
+    return d.strftime("%d/%m/%Y")
+
+
+MSAL_CDN = "https://cdn.jsdelivr.net/npm/@azure/msal-browser@4/lib/msal-browser.min.js"
+
+# Signed-in calls to tag-form's flow "EDT - Asset Page Actions". Every page that changes
+# anything loads this once; panels call SL.post({...}).
+SL_JS = """
+window.SL=(function(){
+var cfg=document.getElementById('slcfg').dataset,SCOPE=['https://service.flow.microsoft.com//User'],app=null,acct=null;
+function go(u){window.location.href=u;return false}
+function token(){
+  if(window.MV_TEST_TOKEN)return Promise.resolve(window.MV_TEST_TOKEN);
+  return app.acquireTokenSilent({scopes:SCOPE,account:acct}).then(function(r){return r.accessToken})
+   .catch(function(){return app.acquireTokenRedirect({scopes:SCOPE,account:acct,onRedirectNavigate:go})})}
+function post(o){return token().then(function(t){return fetch(cfg.flow,{method:'POST',
+  headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify(o)})})
+  .then(function(r){if(r.status===401||r.status===403)throw new Error('auth');return r.json()})}
+function signIn(){return app.loginRedirect({scopes:SCOPE,onRedirectNavigate:go})}
+function errText(e){return e&&e.message==='auth'?'Your sign-in was not accepted. Sign in with your Sofraco account.':'Could not reach the tracker. Nothing was changed.'}
+var ready=new Promise(function(res){
+  if(window.MV_TEST_TOKEN){res(true);return}
+  app=new msal.PublicClientApplication({auth:{clientId:cfg.client,authority:'https://login.microsoftonline.com/'+cfg.tenant,
+    redirectUri:cfg.redirect},cache:{cacheLocation:'localStorage'}});
+  app.initialize().then(function(){return app.handleRedirectPromise()}).then(function(r){
+    acct=(r&&r.account)||app.getAllAccounts()[0]||null;if(acct)app.setActiveAccount(acct);res(!!acct)})
+  .catch(function(){res(false)})});
+function gate(panel,onIn){ready.then(function(ok){
+  panel.querySelector('.gate').hidden=ok;panel.querySelector('.inner').hidden=!ok;if(ok&&onIn)onIn()})
+  panel.querySelector('.gate button').onclick=function(){signIn()}}
+return {post:post,signIn:signIn,ready:ready,gate:gate,errText:errText,location:cfg.location};})();
+"""
+
+
+def sl_head(loc):
+    """Config + MSAL + SL helper for a page that changes things (asset and shelf pages)."""
+    mv = loc.get("move") or {}
+    return (f'<div id="slcfg" hidden data-flow="{esc(mv["flow_url"])}" data-client="{esc(mv["client_id"])}"'
+            f' data-tenant="{esc(mv["tenant_id"])}" data-redirect="{esc(loc["_base"] + "auth/")}"'
+            f' data-location="{esc(loc["title"])}"></div>'
+            f'<script src="{MSAL_CDN}"></script><script>{SL_JS}</script>')
+
+
+def live(loc):
+    mv = loc.get("move") or {}
+    return bool(mv.get("flow_url") and mv.get("client_id"))
+
+
+GATE = ('<div class="gate" hidden><button class="btn" type="button">Sign in with Sofraco</button>'
+        '<div class="hint">Sign in once with your own Sofraco account to make changes.</div></div>')
+
+MOVE_JS = """
+(function(){
+var box=document.getElementById('move');if(!box)return;
+var A=box.dataset.asset,st=document.getElementById('mvst');
+function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
+function show(id){['mvsend','mvdel'].forEach(function(x){document.getElementById(x).hidden=(x!==id)})}
+function load(){msg('Checking where it is…');SL.post({action:'status',asset:A}).then(function(r){
+  if(r.ok===false){msg(r.message||'Not available.',1);return}
+  if(!r.found){msg('This asset was not found in the register.',1);return}
+  var who=r.signedInAs?' · signed in as '+r.signedInAs:'';
+  if(r.inTransit){document.getElementById('mvroute').textContent=(r.from||'?')+' → '+(r.to||'?')+(r.isr?' · '+r.isr:'');show('mvdel');msg('In transit - sign below when it arrives'+who)}
+  else{show('mvsend');msg('Currently at: '+(r.whereabouts||'unknown')+who)}
+ }).catch(function(e){msg(SL.errText(e),1)})}
+var to=document.getElementById('mvto'),PLACES=['GI','SCM','Workshop','Calibration Facility'];
+document.getElementById('mvgo').onclick=function(){
+  var v=to.value.trim(),k=PLACES.filter(function(p){return p.toLowerCase()===v.toLowerCase()})[0];
+  if(!v){msg('Choose or type where it is going.',1);return}
+  var b=this;b.disabled=true;msg('Sending…');
+  SL.post(k?{action:'send',asset:A,to:k}:{action:'send',asset:A,to:'Other',toOther:v.slice(0,100)}).then(function(r){b.disabled=false;
+   if(r.ok){msg('Sent'+(r.isr?' - '+r.isr:'')+'. It now shows as in transit.');setTimeout(load,1500)}else msg(r.message||'Not sent.',1)})
+  .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
+var c=document.getElementById('mvsig'),x=c.getContext('2d'),drawn=false,dn=false;
+function fit(){var r=c.getBoundingClientRect();if(!r.width)return;c.width=r.width*2;c.height=r.height*2;x.setTransform(2,0,0,2,0,0);x.lineWidth=2.2;x.lineCap='round';x.strokeStyle='#051233';drawn=false}
+function pt(e){var r=c.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]}
+c.onpointerdown=function(e){dn=true;c.setPointerCapture(e.pointerId);var p=pt(e);x.beginPath();x.moveTo(p[0],p[1])};
+c.onpointermove=function(e){if(!dn)return;var p=pt(e);x.lineTo(p[0],p[1]);x.stroke();drawn=true};
+c.onpointerup=function(){dn=false};
+document.getElementById('mvclear').onclick=fit;
+document.getElementById('mvdeliver').onclick=function(){
+  if(!drawn){msg('Please sign before confirming the delivery.',1);return}
+  var b=this;b.disabled=true;msg('Recording delivery…');
+  SL.post({action:'deliver',asset:A,name:document.getElementById('mvrecv').value.trim().slice(0,80),signature:c.toDataURL('image/png')}).then(function(r){b.disabled=false;
+   if(r.ok){msg('Delivered. Thank you.');fit();setTimeout(load,1500)}else msg(r.message||'Not recorded.',1)})
+  .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
+new ResizeObserver(fit).observe(c);show('');
+SL.gate(box,load);
+})();
+"""
+
+# Hugo 05/11/2026: from an asset, move it to another bay (or take it off the layout);
+# the flow writes Storage Bay in the Asset Register and republishes.
+BAY_JS = """
+(function(){
+var box=document.getElementById('bay');if(!box)return;
+var A=box.dataset.asset,st=document.getElementById('bayst');
+function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
+function done(r){if(r.ok)msg((r.message||'Done')+' The pages update in about a minute.');else msg(r.message||'Not changed.',1)}
+document.getElementById('baymove').onclick=function(){
+  var v=document.getElementById('baynew').value.trim();
+  if(!/^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/.test(v)){msg('Type the bay as Cabinet.Shelf.Bay, for example 2.3.3.',1);return}
+  var b=this;b.disabled=true;msg('Moving…');
+  SL.post({action:'move',asset:A,bay:v,location:SL.location}).then(function(r){b.disabled=false;done(r)})
+  .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
+document.getElementById('bayremove').onclick=function(){
+  if(!confirm('Take '+A+' off this storage layout? It stays in the Asset Register.'))return;
+  var b=this;b.disabled=true;msg('Removing…');
+  SL.post({action:'remove',asset:A}).then(function(r){b.disabled=false;done(r)})
+  .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
+SL.gate(box);
+})();
+"""
+
+# Hugo 05/11/2026: add assets to a bay by asset number (several per bay are fine),
+# add bays and remove empty ones - straight from the shelf page.
+SHELF_JS = """
+(function(){
+var box=document.getElementById('shelfedit');if(!box)return;
+var st=document.getElementById('shst');
+function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
+function done(r){if(r.ok)msg((r.message||'Done')+' The pages update in about a minute.');else msg(r.message||'Not changed.',1)}
+function am(v){v=v.trim().toUpperCase().replace(/\\s+/g,'');if(/^\\d{1,5}$/.test(v))v='AM'+('00000'+v).slice(-5);return v}
+function bayOk(v){return /^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/.test(v)}
+document.getElementById('shadd').onclick=function(){
+  var a=am(document.getElementById('shasset').value),bay=document.getElementById('shbay').value.trim();
+  if(!/^AM\\d{5}$/.test(a)){msg('Type the asset number, for example AM00869 or just 869.',1);return}
+  if(!bayOk(bay)){msg('Choose the bay, for example '+box.dataset.first+'.',1);return}
+  var b=this;b.disabled=true;msg('Adding '+a+'…');
+  SL.post({action:'place',location:SL.location,bay:bay,asset:a}).then(function(r){b.disabled=false;done(r)})
+  .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
+document.getElementById('shnewbay').onclick=function(){
+  var b=this,bay=box.dataset.next;b.disabled=true;msg('Adding bay '+bay+'…');
+  SL.post({action:'addBay',location:SL.location,bay:bay}).then(function(r){b.disabled=false;done(r)})
+  .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
+[].forEach.call(box.querySelectorAll('.shrm'),function(btn){btn.onclick=function(){
+  var bay=btn.dataset.bay;if(!confirm('Remove empty bay '+bay+'?'))return;btn.disabled=true;msg('Removing bay '+bay+'…');
+  SL.post({action:'removeBay',location:SL.location,bay:bay}).then(function(r){btn.disabled=false;done(r)})
+  .catch(function(e){btn.disabled=false;msg(SL.errText(e),1)})}});
+SL.gate(box);
+})();
+"""
+
+
+def signers():
+    """Names offered for 'Received by' - the DSR signer names, as EDT offers them (--refresh updates)."""
+    try:
+        return json.load(open(SIGNERS, encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+
+
+def move_panel(loc, ref):
+    """Send it on / Deliver it: same records as EDT through the flow."""
+    if not live(loc):
+        return ""
+    return (f'<div class="sec"><h2 class="mono">Send it on</h2></div>'
+            f'<div id="move" class="mv" data-asset="{esc(ref)}">{GATE}<div class="inner" hidden>'
+            f'<div id="mvst" class="mvmsg"></div>'
+            f'<div id="mvsend" hidden><label>Going to<input id="mvto" list="mvplaces" maxlength="100" autocomplete="off"'
+            f' placeholder="Pick or type a place"></label><datalist id="mvplaces"><option value="GI"><option value="SCM">'
+            f'<option value="Workshop"><option value="Calibration Facility"></datalist>'
+            f'<button id="mvgo" class="btn" type="button">Send it on</button></div>'
+            f'<div id="mvdel" hidden><div class="mvroute mono" id="mvroute"></div>'
+            f'<label>Received by (blank = you)<input id="mvrecv" list="mvpeople" maxlength="80" autocomplete="off"'
+            f' placeholder="Pick or type a name"></label><datalist id="mvpeople">'
+            f'{"".join(f"<option value=\"{esc(n)}\">" for n in signers())}</datalist>'
+            f'<label>Signature</label><canvas id="mvsig"></canvas>'
+            f'<button id="mvclear" class="btn alt" type="button">Clear signature</button>'
+            f'<button id="mvdeliver" class="btn" type="button">Deliver it</button></div></div></div>'
+            f'<script>{MOVE_JS}</script>')
+
+
+def bay_panel(loc, it, all_bays):
+    if not live(loc):
+        return ""
+    return (f'<div class="sec"><h2 class="mono">Storage bay</h2><span class="mono">now {esc(it["bin_location"])}</span></div>'
+            f'<div id="bay" class="mv" data-asset="{esc(it["ref"])}">{GATE}<div class="inner" hidden>'
+            f'<div id="bayst" class="mvmsg"></div>'
+            f'<label>Move to bay<input id="baynew" list="baylist" maxlength="11" autocomplete="off" inputmode="decimal"'
+            f' placeholder="Pick or type, e.g. 2.3.3"></label><datalist id="baylist">'
+            f'{"".join(f"<option value=\"{b}\">" for b in all_bays if b != it["bin_location"])}</datalist>'
+            f'<button id="baymove" class="btn" type="button">Move to this bay</button>'
+            f'<button id="bayremove" class="btn alt" type="button">Remove from this storage</button></div></div>'
+            f'<script>{BAY_JS}</script>')
+
+
+def shelf_panel(loc, b, s, slots):
+    if not (live(loc) and loc.get("asset_register")):
+        return ""
+    bays = [f"{b}.{s}.{p}" for p in slots]
+    nxt = f"{b}.{s}.{max(slots) + 1 if slots else 1}"
+    empty = [f"{b}.{s}.{p}" for p, its in slots.items() if not its]
+    return (f'<div class="sec"><h2 class="mono">03 / Change this shelf</h2></div>'
+            f'<div id="shelfedit" class="mv" data-next="{nxt}" data-first="{bays[0] if bays else nxt}">{GATE}'
+            f'<div class="inner" hidden><div id="shst" class="mvmsg"></div>'
+            f'<label>Asset number<input id="shasset" maxlength="12" autocomplete="off" placeholder="e.g. AM00869 or 869"></label>'
+            f'<label>Bay<input id="shbay" list="shbays" maxlength="11" autocomplete="off" inputmode="decimal"'
+            f' placeholder="Pick or type, e.g. {bays[0] if bays else nxt}"></label><datalist id="shbays">'
+            f'{"".join(f"<option value=\"{x}\">" for x in bays)}</datalist>'
+            f'<button id="shadd" class="btn" type="button">Add asset to this bay</button>'
+            f'<button id="shnewbay" class="btn alt" type="button">Add bay {nxt}</button>'
+            f'{"".join(f"<button class=\"btn alt shrm\" type=\"button\" data-bay=\"{x}\">Remove empty bay {x}</button>" for x in empty)}'
+            f'<div class="hint">The asset must already be in the Asset Register. A bay can hold several assets.</div>'
+            f'</div></div><script>{SHELF_JS}</script>')
+
+
+def transit_banner(tr):
+    if not tr:
+        return ""
+    return (f'<div class="note transit">In transit {esc(tr.get("from") or "?")} → {esc(tr.get("to") or "?")}'
+            f'{" · " + esc(tr["isr"]) if tr.get("isr") else ""} · <b>not signed for yet</b></div>')
+
+
+def asset_body(loc, it, reg, all_bays):
+    b, s, p = it["bin_location"].split(".")
+    rows = []
+
+    def row(label, value):
+        if value:
+            rows.append(f"<dt>{esc(label)}</dt><dd>{value}</dd>")
+
+    row("Location", f'<a href="../../{b}-{s}/#p{p}" class="mono">{esc(it["bin_location"])}</a> · {loc["unit_word"]} {b}, Shelf {s}')
+    row("Asset No", f'<b class="mono">{esc(it["ref"])}</b>')
+    if reg:
+        row("Description", esc(reg.get("Desc2") or it["description"]))
+        row("Make", esc(reg.get("Make") or it.get("make", "")))
+        row("Model", esc(reg.get("Model") or it.get("model", "")))
+        row("Serial No", f'<span class="mono">{esc(reg.get("SerialNo") or "")}</span>' if reg.get("SerialNo") else "")
+        row("Specifications", esc(reg.get("Specification") or ""))
+        row("Category", esc(" / ".join(x for x in (reg.get("Category"), reg.get("Sub_x002d_Category")) if x)))
+        status = reg.get("EquipmentStatus") or ""
+        # Hugo 05/11/2026: an item that doesn't need NATA calibration is never shown as
+        # "Out of Calibration" - it reads Indication Only, or No Cal Required
+        if status == "Out of Calibration" and reg.get("EquipmentRequirement") != "Calibration NATA":
+            status = "Indication Only" if reg.get("EquipmentRequirement") == "Indication Only" else "No Cal Required"
+        row("Status", f'<span class="badge {"ok" if status == "Active" else "" if status in ("Indication Only", "No Cal Required") else "bad"}">{esc(status)}</span>' if status else "")
+        row("Whereabouts", esc(reg.get("Whereabouts") or ""))
+        row("Requirement", esc(reg.get("EquipmentRequirement") or ""))
+    else:
+        row("Description", esc(it["description"]))
+        row("Make / Model", esc(" ".join(x for x in (it.get("make"), it.get("model")) if x)))
+    spec = "".join(rows)
+
+    cal = []
+    req = (reg or {}).get("EquipmentRequirement") or ""
+    if req == "Calibration NATA":  # Hugo 05/11/2026: certs and due dates only for NATA items
+        due = reg.get("DueDate")
+        overdue = due and dt.datetime.fromisoformat(due.replace("Z", "+00:00")) < dt.datetime.now(dt.timezone.utc)
+        crow = []
+        # Hugo 05/11/2026: one Calibration Status field - "Calibrated" in green, or red when it
+        # isn't - instead of dates the reader has to work out
+        ok = due and not overdue and (reg.get("EquipmentStatus") or "Active") != "Out of Calibration"
+        crow.append(f'<dt>Calibration status</dt><dd><span class="badge {"ok" if ok else "bad"}">'
+                    f'{"Calibrated" if ok else "Out of Calibration"}</span></dd>')
+        if reg.get("CertifyingOrganisation"):
+            crow.append(f"<dt>Certified by</dt><dd>{esc(str(reg['CertifyingOrganisation']))}</dd>")
+        cal.append(f'<div class="sec"><h2 class="mono">02 / {"NATA calibration" if "NATA" in req else "Calibration"}</h2></div>')
+        cal.append(f'<dl class="spec">{"".join(crow)}</dl>' if crow else "")
+        certs = sorted((a for a in reg.get("AttachmentFiles", []) if a["FileName"].lower().endswith(".pdf")),
+                       key=lambda a: cert_date(a["FileName"]))
+        if certs:
+            from urllib.parse import quote
+            cal.append(f'<a class="btn" target="_blank" rel="noopener" href="{SP}{quote(certs[-1]["ServerRelativeUrl"])}">Open calibration certificate</a>'
+                       f'<div class="hint mono">{esc(certs[-1]["FileName"])} · opens with your Sofraco sign-in</div>')
+        else:
+            cal.append('<div class="note">No calibration certificate is attached to this asset in the Asset Register yet.</div>')
+    folder = (reg or {}).get("Link") or {}
+    docs = ""
+    if folder.get("Url"):
+        docs = (f'<div class="sec"><h2 class="mono">{"03" if cal else "02"} / Documents</h2></div>'
+                f'<a class="btn alt" target="_blank" rel="noopener" href="{esc(folder["Url"])}">Manuals, datasheets &amp; all certificates</a>'
+                f'<div class="hint">Asset folder in SharePoint · opens with your Sofraco sign-in</div>')
+    missing = "" if reg else '<div class="note">This asset number was not found in the Asset Register.</div>'
+    return (f'<p class="crumb mono"><a href="../../">‹ {esc(loc["title"])}</a> › <a href="../../{b}-{s}/">{loc["unit_word"]} {b} · Shelf {b}.{s}</a></p>'
+            f'<div class="hero">{photo(loc, it)}<div><div class="code mono">{esc(it["bin_location"])}</div>'
+            f'<div class="ref mono">{esc(it["ref"])}</div><div class="desc">{esc(it["description"])}</div></div></div>'
+            f'{transit_banner(it.get("transit"))}'
+            f'{move_panel(loc, it["ref"]) if reg else ""}'
+            f'{bay_panel(loc, it, all_bays) if reg else ""}'
+            f'{missing}<div class="sec"><h2 class="mono">01 / Specifications</h2></div><dl class="spec">{spec}</dl>'
+            f'{"".join(cal)}{docs}')
+
+
+# -------------------------------------------------------------------- qr
+def make_qr(url, path):
+    q = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=12, border=4)
+    q.add_data(url)
+    q.make(fit=True)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    q.make_image(fill_color="black", back_color="white").save(path)
+
+
+# ----------------------------------------------------------------- build
+def build():
+    reg = json.load(open(REGISTRY, encoding="utf-8"))
+    base = reg["base_url"]
+    # Sydney time, also when GitHub's runner (UTC) builds
+    try:
+        from zoneinfo import ZoneInfo
+        updated = dt.datetime.now(ZoneInfo("Australia/Sydney")).strftime("%d/%m/%Y %H:%M")
+    except Exception:
+        updated = dt.datetime.now().strftime("%d/%m/%Y %H:%M")
+    os.makedirs(SITE, exist_ok=True)
+    im = Image.open(LOGO)
+    im.thumbnail((520, 160))
+    im.save(os.path.join(SITE, "logo.png"))
+    open(os.path.join(SITE, ".nojekyll"), "w").close()
+    index = []
+    for loc in reg["locations"]:
+        loc["_base"] = base
+        items = load_items(loc)
+        tree, unplaced = build_tree(items)
+        out = os.path.join(SITE, loc["slug"])
+        keep = {"img", "asset"}
+        if os.path.isdir(out):  # drop shelf pages that no longer exist
+            for d in os.listdir(out):
+                if d not in keep and os.path.isdir(os.path.join(out, d)):
+                    shutil.rmtree(os.path.join(out, d))
+            if os.path.isdir(os.path.join(out, "asset")):
+                shutil.rmtree(os.path.join(out, "asset"))
+        os.makedirs(out, exist_ok=True)
+        with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as f:
+            f.write(page(loc["title"], loc["title"], loc["subtitle"],
+                         cabinet_body(loc, tree, unplaced, items) + downloads_html(loc), 1, updated))
+        qr = {"cabinet": url_for(base, loc), "shelves": {}}
+        qdir = ldir(loc, "qr")
+        if os.path.isdir(qdir):
+            shutil.rmtree(qdir)
+        make_qr(qr["cabinet"], os.path.join(qdir, "cabinet.png"))
+        for b, shelves in tree.items():
+            for s, slots in shelves.items():
+                d = os.path.join(out, shelf_slug(b, s))
+                os.makedirs(d, exist_ok=True)
+                h1 = f'{loc["title"]} · Shelf {b}.{s}'
+                with open(os.path.join(d, "index.html"), "w", encoding="utf-8") as f:
+                    f.write(page(h1, f"Shelf {b}.{s}", loc["title"],
+                                 (sl_head(loc) if live(loc) and loc.get("asset_register") else "") + shelf_body(loc, b, s, slots),
+                                 2, updated).replace('src="img/', 'src="../img/'))
+                qr["shelves"][shelf_key(b, s)] = url_for(base, loc, b, s)
+                make_qr(qr["shelves"][shelf_key(b, s)], os.path.join(qdir, f"shelf-{shelf_slug(b, s)}.png"))
+        if loc.get("asset_register"):
+            all_bays = sorted({i["bin_location"] for i in items if i.get("bin_location")}, key=bay_key)
+            with open(ldir(loc, "asset_links.csv"), "w", newline="", encoding="utf-8") as f:
+                w = csv.writer(f)  # read by the asset-tag artwork; one row per asset
+                w.writerow(["asset_no", "location", "cabinet", "shelf", "position", "description", "asset_page_url", "shelf_page_url"])
+                for it in items:
+                    if it.get("ref") and it.get("bin_location"):
+                        c, s_, p_ = it["bin_location"].split(".")
+                        w.writerow([it["ref"], it["bin_location"], c, s_, p_, it["description"],
+                                    f'{url_for(base, loc)}asset/{it["ref"]}/', url_for(base, loc, c, s_)])
+            for it in items:
+                if it.get("ref") and it.get("bin_location"):
+                    d = os.path.join(out, "asset", it["ref"])
+                    os.makedirs(d, exist_ok=True)
+                    with open(os.path.join(d, "index.html"), "w", encoding="utf-8") as f:
+                        f.write(page(f'{it["ref"]} · {it["description"]}', it["ref"], loc["title"],
+                                     (sl_head(loc) if live(loc) else "") + asset_body(loc, it, it.get("_reg"), all_bays),
+                                     3, updated).replace('src="img/', 'src="../../img/'))
+        with open(ws(loc["qr_json"]), "w", encoding="utf-8") as f:
+            json.dump(qr, f, indent=2)
+        n = sum(1 for i in items if i.get("description"))
+        if not loc.get("hidden"):
+            index.append(f'<a href="{loc["slug"]}/"><span>{esc(loc["title"])}</span><span class="mono">{n} items ›</span></a>')
+        print(f'{loc["slug"]}: {n} items, {len(qr["shelves"])} shelf pages, {len(unplaced)} not placed')
+    moves = [l["move"] for l in json.load(open(REGISTRY, encoding="utf-8"))["locations"] if (l.get("move") or {}).get("client_id")]
+    if moves:  # sign-in return page: MSAL finishes the redirect, then sends the worker back to their asset
+        mv = moves[0]
+        os.makedirs(os.path.join(SITE, "auth"), exist_ok=True)
+        with open(os.path.join(SITE, "auth", "index.html"), "w", encoding="utf-8") as f:
+            f.write(page("Signing in", "Signing in", "Sofraco", '<p class="mvmsg">Signing you in…</p>'
+                         f'<script src="{MSAL_CDN}"></script><script>'
+                         f'var a=new msal.PublicClientApplication({{auth:{{clientId:{json.dumps(mv["client_id"])},'
+                         f'authority:"https://login.microsoftonline.com/{mv["tenant_id"]}",redirectUri:{json.dumps(base + "auth/")},'
+                         f'navigateToLoginRequestUrl:true}},cache:{{cacheLocation:"localStorage"}}}});'
+                         f'a.initialize().then(function(){{return a.handleRedirectPromise()}}).then(function(r){{'
+                         f'if(!r)location.replace({json.dumps(base)})}});</script>', 1, updated)
+                    .replace('href="../logo.png"', 'href="../logo.png"'))
+    with open(os.path.join(SITE, "index.html"), "w", encoding="utf-8") as f:
+        f.write(page("Storage layouts", "Storage Layouts", "Scan the QR on a cabinet or shelf",
+                     '<div class="idx">' + "".join(index) + "</div>", 0, updated).replace('href="../logo.png"', 'href="logo.png"'))
+
+
+# ------------------------------------------------------------ printable PDFs
+PDF_FILES = [("A3 layout", "lab_equipment_storage_a3.pdf"),
+             ("Shelf stickers (Avery L7073)", "lab_equipment_storage_shelf_stickers_L7073.pdf"),
+             ("Asset tags (Avery L7073)", "lab_equipment_storage_asset_tags_L7073.pdf"),
+             ("Asset tags (A3, cut by hand)", "lab_equipment_storage_asset_tags_A3.pdf")]
+
+
+def write_pdf_items(loc, items):
+    """items.csv for the PDF generator, from the register snapshot."""
+    with open(ldir(loc, "items.csv"), "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["bin_location", "register_no", "description", "make", "model", "image"])
+        for it in sorted((i for i in items if i.get("bin_location")), key=lambda i: (bay_key(i["bin_location"]), i["ref"])):
+            w.writerow([it["bin_location"], it["ref"], it["description"], it.get("make", ""), it.get("model", ""),
+                        it.get("image", "")])
+
+
+def make_pdfs():
+    """A3 layout, shelf stickers and asset tags for every location with "pdfs": true -> downloads/."""
+    for loc in json.load(open(REGISTRY, encoding="utf-8"))["locations"]:
+        if loc.get("pdfs"):
+            write_pdf_items(loc, load_items(loc))
+            subprocess.run([sys.executable, os.path.join(TOOLS, loc["pdfs"])], check=True)
+
+
+def downloads_html(loc):
+    if not loc.get("pdfs"):
+        return ""
+    links = "".join(f'<a class="btn alt" target="_blank" rel="noopener" href="../downloads/{f}">{esc(n)}</a>'
+                    for n, f in PDF_FILES if os.path.exists(os.path.join(SITE, "downloads", f)))
+    return (f'<div class="sec"><h2 class="mono">Print</h2><span class="mono">always the current layout</span></div>{links}'
+            if links else "")
+
+
+# ------------------------------------------------------------ FSL source
+def refresh_fsl():
+    """Pull the live FSL list through the signed-in browser (SharePoint REST on
+    the browser session - no Graph) into the fastener-shelves items.csv.
+    Bin/Shelf (BinShelf) holds the B.S.P position."""
+    sys.path.insert(0, os.path.join(WORKSPACE, "scripts"))
+    from playwright.sync_api import sync_playwright
+    from sofraco_browser import connect, ensure_browser, page_for
+    with sync_playwright() as p:
+        port, _ = ensure_browser()
+        _, ctx = connect(p, port)
+        pg = page_for(ctx, FSL_SITE, port=port)
+        try:
+            if "sharepoint.com" not in pg.url:
+                pg.goto(FSL_SITE)
+            r = ctx.request.get(f"{FSL_SITE}/_api/web/lists(guid'{FSL_LIST}')/items?$top=5000",
+                                headers={"Accept": "application/json;odata=nometadata"})
+            rows = r.json()["value"]
+        finally:
+            pg.close()
+    loc = next(l for l in json.load(open(REGISTRY))["locations"] if l.get("source") == "fsl")
+    cols = ["bin_location", "item_code", "description", "make", "model", "image", "category",
+            "thread_size", "length_mm", "qty", "uom", "reorder_point", "stock_status"]
+    out = []
+    for x in sorted(rows, key=lambda x: x.get("ItemCode") or ""):
+        if x.get("Active") is False:
+            continue
+        fmt = lambda v: "" if v is None else (str(int(v)) if isinstance(v, float) and v.is_integer() else str(v))
+        out.append({"bin_location": (x.get("BinShelf") or "").strip(), "item_code": x.get("ItemCode") or "",
+                    "description": x.get("Title") or "", "make": "", "model": "", "image": x.get("ItemCode") or "",
+                    "category": x.get("ComponentCategory") or "", "thread_size": x.get("ThreadSize") or "",
+                    "length_mm": fmt(x.get("LengthMM")), "qty": fmt(x.get("QtyOnHand")), "uom": x.get("UnitOfMeasure") or "",
+                    "reorder_point": fmt(x.get("ReorderPoint")), "stock_status": x.get("StockStatus") or ""})
+    with open(ws(loc["csv"]), "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, cols)
+        w.writeheader()
+        w.writerows(out)
+    print(f"FSL: {len(out)} active rows -> {ws(loc['csv'])}")
+
+
+ASSET_SITE = SP + "/sites/AssetManagement"
+ASSET_LIST = "f8fbbec9-a633-479c-a691-637c1826ec4a"  # AM-R055 Asset Register
+BAYS_LIST = "84d715f4-429f-419d-9f3d-113bf39f176d"   # SLB - Storage Layout Bays
+ISR_SITE = SP + "/sites/Field-Service"
+ISR_LIST = "bdd4169f-e683-4ed8-bd79-1efe49f1dd02"
+ASSET_FIELDS = ["AssetNumber", "StorageBay", "Desc2", "Make", "Model", "SerialNo", "Specification", "Category",
+                "Sub_x002d_Category", "EquipmentRequirement", "EquipmentStatus", "Whereabouts",
+                "Calibration_x002f_InspectionDate", "DueDate", "CertifyingOrganisation",
+                "RequirementFrequency_x002a_month", "Link", "AttachmentFiles"]  # never prices or contacts
+ASSET_PHOTOS = os.path.join(os.environ.get("USERPROFILE", ""), r"SOFRACO\Assets - AM\01. Assets")
+
+
+def refresh_layouts():
+    """Write data/<slug>/layout.json from the Asset Register (Storage Location / Storage Bay),
+    the bays list and the open asset ISR rows - the same file the flow commits after a change.
+    Signed-in browser session REST, no Graph. Also copies missing register photos."""
+    sys.path.insert(0, os.path.join(WORKSPACE, "scripts"))
+    from playwright.sync_api import sync_playwright
+    from sofraco_browser import connect, ensure_browser, page_for
+    h = {"Accept": "application/json;odata=nometadata"}
+    with sync_playwright() as p:
+        port, _ = ensure_browser()
+        _, ctx = connect(p, port)
+        pg = page_for(ctx, ASSET_SITE, port=port)
+        try:
+            if "sharepoint.com" not in pg.url:
+                pg.goto(ASSET_SITE)
+            sel = ",".join(f for f in ASSET_FIELDS + ["StorageLocation"] if f != "AttachmentFiles")
+            rows = ctx.request.get(f"{ASSET_SITE}/_api/web/lists(guid'{ASSET_LIST}')/items?$top=5000"
+                                   f"&$select={sel},AttachmentFiles&$expand=AttachmentFiles"
+                                   "&$filter=StorageLocation ne null", headers=h).json()["value"]
+            bays = ctx.request.get(f"{ASSET_SITE}/_api/web/lists(guid'{BAYS_LIST}')/items?$top=5000&$select=Title,Bay",
+                                   headers=h).json()["value"]
+            isr = ctx.request.get(f"{ISR_SITE}/_api/web/lists(guid'{ISR_LIST}')/items?$top=5000"
+                                  "&$select=AssetNumber,Status,From,To,WorkshopOrderNumber,Created,Tracking"
+                                  "&$filter=Typeofrequest eq 'Asset' and Status eq 'In transit'", headers=h).json()["value"]
+        finally:
+            pg.close()
+    transit = {}
+    for r in sorted(isr, key=lambda r: r["Created"]):
+        transit[(r.get("AssetNumber") or "").upper()] = {"isr": r.get("WorkshopOrderNumber"), "from": r.get("From"),
+                                                          "to": r.get("To"), "sentAt": r.get("Created")}
+    now = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+    for loc in json.load(open(REGISTRY, encoding="utf-8"))["locations"]:
+        if not loc.get("asset_register"):
+            continue
+        mine = [r for r in rows if (r.get("StorageLocation") or "").strip().lower() == loc["title"].lower()]
+        assets = []
+        for r in sorted(mine, key=lambda r: r.get("AssetNumber") or ""):
+            a = {k: r.get(k) for k in ASSET_FIELDS}
+            a["AttachmentFiles"] = [{"FileName": f["FileName"], "ServerRelativeUrl": f["ServerRelativeUrl"]}
+                                    for f in r.get("AttachmentFiles") or []]
+            a["transit"] = transit.get((a["AssetNumber"] or "").upper())
+            assets.append(a)
+            am = (a["AssetNumber"] or "").upper()
+            src = os.path.join(ASSET_PHOTOS, am, am + "_OEM.png")
+            dst = os.path.join(IMAGES, am + "_OEM.webp")
+            if os.path.exists(src) and (not os.path.exists(dst) or os.path.getmtime(dst) < os.path.getmtime(src)):
+                im = Image.open(src).convert("RGBA")
+                im.thumbnail((1000, 1000))
+                im.save(dst, "WEBP", quality=90, method=6)
+        lay = {"location": loc["title"], "generatedAt": now,
+               "bays": sorted({b["Bay"] for b in bays if (b.get("Title") or "").lower() == loc["title"].lower()
+                               and BAY_RE.match(b.get("Bay") or "")}, key=bay_key),
+               "assets": assets}
+        os.makedirs(ldir(loc), exist_ok=True)
+        with open(ldir(loc, "layout.json"), "w", encoding="utf-8") as f:
+            json.dump(lay, f, indent=1)
+        print(f'{loc["slug"]}: {len(assets)} assets, {len(lay["bays"])} bays, '
+              f'{sum(1 for a in assets if a["transit"])} in transit')
+
+
+def refresh_signers():
+    """DSR signer names (most used first) for the 'Received by' combo box."""
+    sys.path.insert(0, os.path.join(WORKSPACE, "scripts"))
+    from collections import Counter
+    from playwright.sync_api import sync_playwright
+    from sofraco_browser import connect, ensure_browser, page_for
+    site = SP + "/sites/Field-Service"
+    with sync_playwright() as p:
+        port, _ = ensure_browser()
+        _, ctx = connect(p, port)
+        pg = page_for(ctx, site, port=port)
+        try:
+            if "sharepoint.com" not in pg.url:
+                pg.goto(site)
+            rows = ctx.request.get(f"{site}/_api/web/lists/getbytitle('DSR - Delivery Signature Register')/items"
+                                   "?$top=5000&$select=SignedByName",
+                                   headers={"Accept": "application/json;odata=nometadata"}).json()["value"]
+        finally:
+            pg.close()
+    names = Counter((r.get("SignedByName") or "").strip() for r in rows)
+    names.pop("", None)
+    json.dump([n for n, _ in names.most_common()], open(SIGNERS, "w", encoding="utf-8"), indent=1)
+    print(f"signers: {len(names)} names")
+
+
+# --------------------------------------------------------------- publish
+SITE_ACCOUNT = "workshopsofraco"  # Sofraco's GitHub account (workshop@sofraco.com.au)
+
+
+def git(*args):
+    # Push as the Sofraco account whatever gh's active account is (fasima stays active for other projects).
+    tok = subprocess.run(["gh", "auth", "token", "--user", SITE_ACCOUNT], capture_output=True, text=True).stdout.strip()
+    env = dict(os.environ, GH_TOKEN=tok) if tok else None
+    return subprocess.run(["git", "-C", SITE, *args], check=True, capture_output=True, text=True, env=env).stdout
+
+
+def pull():
+    """Changes made on the pages arrive as commits from the flow - take them first."""
+    git("pull", "-q", "--rebase", "--autostash", "origin", "main")
+
+
+def publish():
+    git("add", "-A")
+    if git("status", "--porcelain").strip():
+        git("commit", "-q", "-m", "Update storage layouts " + dt.datetime.now().strftime("%d/%m/%Y %H:%M"))
+    pull()
+    git("push", "-q", "origin", "main")
+    print("pushed - GitHub Pages refreshes within about a minute")
+    return
+
+
+def _old_publish():
+    git("add", "-A")
+    if not git("status", "--porcelain").strip():
+        print("site unchanged - nothing to publish")
+        return
+    git("commit", "-q", "-m", "Update storage layouts " + dt.datetime.now().strftime("%d/%m/%Y %H:%M"))
+    git("push", "-q", "origin", "main")
+    print("pushed - GitHub Pages refreshes within about a minute")
+
+
+def check():
+    """Every page live and every QR decodes to its own page."""
+    import cv2
+    import requests
+    reg = json.load(open(REGISTRY, encoding="utf-8"))
+    det, bad, n = cv2.QRCodeDetector(), [], 0
+    for loc in reg["locations"]:
+        qr = json.load(open(ws(loc["qr_json"]), encoding="utf-8"))
+        qdir = ldir(loc, "qr")
+        pairs = [("cabinet.png", qr["cabinet"], loc["title"])] + \
+            [(f"shelf-{k.replace('.', '-')}.png", u, f"Shelf {k}") for k, u in qr["shelves"].items()]
+        for png, url, must in pairs:
+            n += 1
+            img = cv2.imread(os.path.join(qdir, png))
+            text, _, _ = det.detectAndDecode(img)
+            if not text:  # the classic detector misses some valid codes
+                text, _, _ = cv2.QRCodeDetectorAruco().detectAndDecode(img)
+            r = requests.get(url, timeout=30)
+            ok = text == url and r.status_code == 200 and esc(must) in r.text
+            if not ok:
+                bad.append(f"{loc['slug']}/{png}: qr={text!r} http={r.status_code}")
+    print(f"checked {n} QR codes / pages, {len(bad)} problems")
+    for b in bad:
+        print("  " + b)
+    return not bad
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--refresh", action="store_true", help="snapshot FSL, Asset Register, bays and transit first")
+    ap.add_argument("--no-pull", action="store_true")
+    ap.add_argument("--pdfs", action="store_true", help="also rebuild the printable PDFs")
+    ap.add_argument("--refresh-fsl", action="store_true")
+    ap.add_argument("--publish", action="store_true")
+    ap.add_argument("--check", action="store_true")
+    a = ap.parse_args()
+    if a.check:
+        sys.exit(0 if check() else 1)
+    if a.refresh or a.refresh_fsl:
+        refresh_fsl()
+    if not a.no_pull and os.path.isdir(os.path.join(SITE, ".git")) and not os.environ.get("CI"):
+        pull()
+    if a.refresh:
+        refresh_layouts()
+    if a.pdfs:
+        make_pdfs()
+    build()
+    if a.publish:
+        publish()

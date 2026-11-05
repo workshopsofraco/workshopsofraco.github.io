@@ -85,9 +85,64 @@ a.btn.alt,button.btn.alt{background:#fff;color:var(--deep);border:1.5px solid va
 .mv button.btn{width:100%;border:0;font:inherit;font-weight:700;cursor:pointer}.mv button.btn.alt{border:1.5px solid var(--deep)}
 .mvmsg{font-size:14px;font-weight:600;color:var(--deep)}.mvmsg.bad{color:var(--red)}
 .mvroute{font-size:15px;font-weight:700;margin-top:6px}
-footer{max-width:1180px;margin:0 auto;padding:14px 16px 30px;border-top:1px solid var(--rule);font-size:11px;color:var(--grey);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.slot .mini{display:flex;flex-direction:column;align-items:center;width:100%;text-decoration:none;color:inherit;padding:4px 2px;border:1px solid var(--rule);background:#fff;margin-top:6px}
+.slot .mini .ref{font-size:11px;margin-top:4px}
+.mini.transit,.card.transit{background:#FFF4E5;border:2px solid #F59E0B}
+.tr{font-size:10.5px;font-weight:800;color:#B45309;margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
+.card .tr{font-size:12px}
+.note.transit{background:#FFF4E5;border-color:#F59E0B;color:#7C2D12;margin-top:12px}
+.mv .gate .btn{margin-top:0}footer{max-width:1180px;margin:0 auto;padding:14px 16px 30px;border-top:1px solid var(--rule);font-size:11px;color:var(--grey);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 </style></head><body>
 <header><div class="hd"><img src="../../logo.png" alt="Sofraco"><div class="t"><h1>Shelf 2.3</h1><div class="sub mono">Lab Equipment Storage</div></div></div></header>
-<main><p class="crumb mono"><a href="../">‹ Lab Equipment Storage</a></p><div class="sec"><h2 class="mono">01 / Shelf positions</h2><span class="mono">Cabinet 2 · Shelf 3</span></div><div class="strip" style="--p:2"><a class="mono" href="#p1">2.3.1</a><a class="mono" href="#p2">2.3.2</a></div><div class="sec"><h2 class="mono">02 / What belongs here</h2><span class="mono">3 items</span></div><div class="cards"><a class="card plain" href="../asset/AM00849/" id=p1><div class="ph"><img src="../img/AM00849_OEM.webp" alt="Beamex Hand Pump &amp; Fittings" loading="lazy"></div><div><div class="code mono">2.3.1</div><div class="ref mono">Asset No: AM00849</div><div class="desc">Beamex Hand Pump &amp; Fittings</div><div class=mm>Beamex PGXH</div><div class=more>Specifications &amp; calibration ›</div></div></a><a class="card plain" href="../asset/AM00130/" id=p2><div class="ph"><img src="../img/AM00130_OEM.webp" alt="Beamex MC6 Calibrator &amp; Carry Case" loading="lazy"></div><div><div class="code mono">2.3.2</div><div class="ref mono">Asset No: AM00130</div><div class="desc">Beamex MC6 Calibrator &amp; Carry Case</div><div class=mm>Beamex MC6</div><div class=more>Specifications &amp; calibration ›</div></div></a><a class="card plain" href="../asset/AM00127/"><div class="ph"><img src="../img/AM00127_OEM.webp" alt="Beamex EXT600 External Pressure Sensor" loading="lazy"></div><div><div class="code mono">2.3.2</div><div class="ref mono">Asset No: AM00127</div><div class="desc">Beamex EXT600 External Pressure Sensor</div><div class=mm>Beamex EXT600</div><div class=more>Specifications &amp; calibration ›</div></div></a></div></main>
-<footer><span>Sofraco Engineering Systems</span><span class="mono">Updated 05/11/2026 15:30</span></footer>
+<main><div id="slcfg" hidden data-flow="https://defaultb3fa63e0ca724aee9629da15a41c21.f9.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/07/workflows/b8bfa0b8ccec459797d129e611b4b627/triggers/manual/paths/invoke?api-version=1" data-client="3dba9759-c18f-411a-ba3c-b213b2f038a9" data-tenant="b3fa63e0-ca72-4aee-9629-da15a41c21f9" data-redirect="https://workshopsofraco.github.io/auth/" data-location="Lab Equipment Storage"></div><script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@4/lib/msal-browser.min.js"></script><script>
+window.SL=(function(){
+var cfg=document.getElementById('slcfg').dataset,SCOPE=['https://service.flow.microsoft.com//User'],app=null,acct=null;
+function go(u){window.location.href=u;return false}
+function token(){
+  if(window.MV_TEST_TOKEN)return Promise.resolve(window.MV_TEST_TOKEN);
+  return app.acquireTokenSilent({scopes:SCOPE,account:acct}).then(function(r){return r.accessToken})
+   .catch(function(){return app.acquireTokenRedirect({scopes:SCOPE,account:acct,onRedirectNavigate:go})})}
+function post(o){return token().then(function(t){return fetch(cfg.flow,{method:'POST',
+  headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify(o)})})
+  .then(function(r){if(r.status===401||r.status===403)throw new Error('auth');return r.json()})}
+function signIn(){return app.loginRedirect({scopes:SCOPE,onRedirectNavigate:go})}
+function errText(e){return e&&e.message==='auth'?'Your sign-in was not accepted. Sign in with your Sofraco account.':'Could not reach the tracker. Nothing was changed.'}
+var ready=new Promise(function(res){
+  if(window.MV_TEST_TOKEN){res(true);return}
+  app=new msal.PublicClientApplication({auth:{clientId:cfg.client,authority:'https://login.microsoftonline.com/'+cfg.tenant,
+    redirectUri:cfg.redirect},cache:{cacheLocation:'localStorage'}});
+  app.initialize().then(function(){return app.handleRedirectPromise()}).then(function(r){
+    acct=(r&&r.account)||app.getAllAccounts()[0]||null;if(acct)app.setActiveAccount(acct);res(!!acct)})
+  .catch(function(){res(false)})});
+function gate(panel,onIn){ready.then(function(ok){
+  panel.querySelector('.gate').hidden=ok;panel.querySelector('.inner').hidden=!ok;if(ok&&onIn)onIn()})
+  panel.querySelector('.gate button').onclick=function(){signIn()}}
+return {post:post,signIn:signIn,ready:ready,gate:gate,errText:errText,location:cfg.location};})();
+</script><p class="crumb mono"><a href="../">‹ Lab Equipment Storage</a></p><div class="sec"><h2 class="mono">01 / Shelf positions</h2><span class="mono">Cabinet 2 · Shelf 3</span></div><div class="strip" style="--p:2"><a class="mono" href="#p1">2.3.1</a><a class="mono" href="#p2">2.3.2</a></div><div class="sec"><h2 class="mono">02 / What belongs here</h2><span class="mono">3 items</span></div><div class="cards"><a class="card plain" href="../asset/AM00849/" id=p1><div class="ph"><img src="../img/AM00849_OEM.webp" alt="Beamex Hand Pump &amp; Fittings" loading="lazy"></div><div><div class="code mono">2.3.1</div><div class="ref mono">Asset No: AM00849</div><div class="desc">Beamex Hand Pump &amp; Fittings</div><div class=mm>Beamex</div><div class=more>Specifications &amp; calibration ›</div></div></a><a class="card plain" href="../asset/AM00127/" id=p2><div class="ph"><img src="../img/AM00127_OEM.webp" alt="EXT600 Beamex - External Pressure Module" loading="lazy"></div><div><div class="code mono">2.3.2</div><div class="ref mono">Asset No: AM00127</div><div class="desc">EXT600 Beamex - External Pressure Module</div><div class=mm>Beamex EXT600</div><div class=more>Specifications &amp; calibration ›</div></div></a><a class="card plain" href="../asset/AM00130/"><div class="ph"><img src="../img/AM00130_OEM.webp" alt="MC6 Beamex - Advance Field Calibrator" loading="lazy"></div><div><div class="code mono">2.3.2</div><div class="ref mono">Asset No: AM00130</div><div class="desc">MC6 Beamex - Advance Field Calibrator</div><div class=mm>Beamex MC6</div><div class=more>Specifications &amp; calibration ›</div></div></a></div><div class="sec"><h2 class="mono">03 / Change this shelf</h2></div><div id="shelfedit" class="mv" data-next="2.3.3" data-first="2.3.1"><div class="gate" hidden><button class="btn" type="button">Sign in with Sofraco</button><div class="hint">Sign in once with your own Sofraco account to make changes.</div></div><div class="inner" hidden><div id="shst" class="mvmsg"></div><label>Asset number<input id="shasset" maxlength="12" autocomplete="off" placeholder="e.g. AM00869 or 869"></label><label>Bay<input id="shbay" list="shbays" maxlength="11" autocomplete="off" inputmode="decimal" placeholder="Pick or type, e.g. 2.3.1"></label><datalist id="shbays"><option value="2.3.1"><option value="2.3.2"></datalist><button id="shadd" class="btn" type="button">Add asset to this bay</button><button id="shnewbay" class="btn alt" type="button">Add bay 2.3.3</button><div class="hint">The asset must already be in the Asset Register. A bay can hold several assets.</div></div></div><script>
+(function(){
+var box=document.getElementById('shelfedit');if(!box)return;
+var st=document.getElementById('shst');
+function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
+function done(r){if(r.ok)msg((r.message||'Done')+' The pages update in about a minute.');else msg(r.message||'Not changed.',1)}
+function am(v){v=v.trim().toUpperCase().replace(/\s+/g,'');if(/^\d{1,5}$/.test(v))v='AM'+('00000'+v).slice(-5);return v}
+function bayOk(v){return /^\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(v)}
+document.getElementById('shadd').onclick=function(){
+  var a=am(document.getElementById('shasset').value),bay=document.getElementById('shbay').value.trim();
+  if(!/^AM\d{5}$/.test(a)){msg('Type the asset number, for example AM00869 or just 869.',1);return}
+  if(!bayOk(bay)){msg('Choose the bay, for example '+box.dataset.first+'.',1);return}
+  var b=this;b.disabled=true;msg('Adding '+a+'…');
+  SL.post({action:'place',location:SL.location,bay:bay,asset:a}).then(function(r){b.disabled=false;done(r)})
+  .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
+document.getElementById('shnewbay').onclick=function(){
+  var b=this,bay=box.dataset.next;b.disabled=true;msg('Adding bay '+bay+'…');
+  SL.post({action:'addBay',location:SL.location,bay:bay}).then(function(r){b.disabled=false;done(r)})
+  .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
+[].forEach.call(box.querySelectorAll('.shrm'),function(btn){btn.onclick=function(){
+  var bay=btn.dataset.bay;if(!confirm('Remove empty bay '+bay+'?'))return;btn.disabled=true;msg('Removing bay '+bay+'…');
+  SL.post({action:'removeBay',location:SL.location,bay:bay}).then(function(r){btn.disabled=false;done(r)})
+  .catch(function(e){btn.disabled=false;msg(SL.errText(e),1)})}});
+SL.gate(box);
+})();
+</script></main>
+<footer><span>Sofraco Engineering Systems</span><span class="mono">Updated 05/11/2026 15:47</span></footer>
 </body></html>

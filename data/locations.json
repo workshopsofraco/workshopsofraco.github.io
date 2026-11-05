@@ -1,0 +1,53 @@
+{
+    "base_url":  "https://workshopsofraco.github.io/",
+    "locations":  [
+                      {
+                          "slug":  "lab-equipment-storage",
+                          "title":  "Lab Equipment Storage",
+                          "subtitle":  "Please return to correct location",
+                          "csv":  "data/lab-equipment-storage/items.csv",
+                          "images":  "data/images",
+                          "ref_col":  "register_no",
+                          "ref_label":  "Asset No",
+                          "unit_word":  "Cabinet",
+                          "asset_register":  true,
+                          "qr_json":  "data/lab-equipment-storage/qr.json",
+                          "move":  {
+                                       "flow_url":  "https://defaultb3fa63e0ca724aee9629da15a41c21.f9.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/07/workflows/b8bfa0b8ccec459797d129e611b4b627/triggers/manual/paths/invoke?api-version=1",
+                                       "tenant_id":  "b3fa63e0-ca72-4aee-9629-da15a41c21f9",
+                                       "client_id":  "3dba9759-c18f-411a-ba3c-b213b2f038a9",
+                                       "note":  "client_id = Entra SPA app registration (redirect https://workshopsofraco.github.io/lab-equipment-storage/, delegated Power Automate User). Panel stays off until it is set."
+                                   },
+                          "pdfs":  "lab_pdfs.py"
+                      },
+                      {
+                          "slug":  "fastener-shelves",
+                          "title":  "Fastener Shelves",
+                          "subtitle":  "Please return to correct location",
+                          "csv":  "data/fastener-shelves/items.csv",
+                          "source":  "fsl",
+                          "ref_col":  "item_code",
+                          "ref_label":  "Stock Code",
+                          "unit_word":  "Bay",
+                          "qr_json":  "data/fastener-shelves/qr.json"
+                      },
+                      {
+                          "slug":  "edt-test",
+                          "title":  "EDT Test Asset",
+                          "subtitle":  "Test page - not for use",
+                          "csv":  "data/edt-test/items.csv",
+                          "ref_col":  "register_no",
+                          "ref_label":  "Asset No",
+                          "unit_word":  "Cabinet",
+                          "asset_register":  true,
+                          "hidden":  true,
+                          "qr_json":  "data/edt-test/qr.json",
+                          "move":  {
+                                       "flow_url":  "https://defaultb3fa63e0ca724aee9629da15a41c21.f9.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/07/workflows/b8bfa0b8ccec459797d129e611b4b627/triggers/manual/paths/invoke?api-version=1",
+                                       "tenant_id":  "b3fa63e0-ca72-4aee-9629-da15a41c21f9",
+                                       "client_id":  "3dba9759-c18f-411a-ba3c-b213b2f038a9",
+                                       "note":  "client_id = Entra SPA app registration (redirect https://workshopsofraco.github.io/lab-equipment-storage/, delegated Power Automate User). Panel stays off until it is set."
+                                   }
+                      }
+                  ]
+}
