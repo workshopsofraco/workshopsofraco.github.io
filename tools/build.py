@@ -279,14 +279,16 @@ a.btn.alt,button.btn.alt{background:#fff;color:var(--deep);border:1.5px solid va
 .note.transit{background:#FFF4E5;border-color:#F59E0B;color:#7C2D12;margin-top:12px}
 .mv .gate .btn{margin-top:0}.ed{display:none}
 body.editing .ed{display:inline-block}
-.editbar{display:flex;align-items:center;gap:12px;margin:0 0 10px}.editbar .btn{margin:0;padding:10px 18px;width:auto}
+.editbar{display:flex;align-items:center;gap:12px;margin:0 0 10px;flex-wrap:wrap}.editbar .btn{margin:0;padding:10px 18px;width:auto;font:inherit;font-weight:700;cursor:pointer}.slot .ed{white-space:nowrap}
 body.editing .slot{outline:1px dashed var(--blue);outline-offset:-3px}
 body.editing .mini{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
 .mini.dragging{opacity:.3}.mini.pending{opacity:.55}
+.ghost .ph{height:64px;display:flex;align-items:flex-end;justify-content:center}.ghost .ph img{max-height:64px;max-width:100%;object-fit:contain}
+.ghost .desc{font-size:10.5px}.mini.added{border:2px dashed var(--blue)}
 .ghost{position:fixed;z-index:50;pointer-events:none;opacity:.9;box-shadow:0 8px 24px rgba(5,18,51,.35);background:#fff}
 .slot.over,#trash.over{background:#E3EEFF;outline:2px solid var(--blue)}
 .slot .ed{font:inherit;font-size:11px;font-weight:700;color:var(--blue);background:#fff;border:1px solid var(--blue);padding:3px 6px;margin:4px 2px 0;cursor:pointer}
-.slot .rmbay{color:var(--red);border-color:var(--red)}.slot:not(.empty) .rmbay{display:none!important}
+.slot .rmbay,.slot .rmasset{color:var(--red);border-color:var(--red)}.slot:not(.empty) .rmbay{display:none!important}
 .shelf .addbay{font:inherit;font-size:11px;font-weight:700;color:var(--blue);background:#fff;border:1px solid var(--blue);padding:3px 8px;margin-left:auto;margin-right:8px}
 #trash{position:sticky;bottom:10px;z-index:20;margin:10px 0;padding:14px;text-align:center;font-weight:700;color:var(--red);
   background:#FFF1F1;border:2px dashed var(--red)}
@@ -339,9 +341,10 @@ def cabinet_body(loc, tree, unplaced, items):
     if tree:
         body.append(f'<div class="sec"><h2 class="mono">01 / Layout</h2><span class="mono">{len(tree)} {loc["unit_word"].lower()}s · {n_items} items</span></div>')
         if live(loc) and loc.get("asset_register"):
-            body.append('<div class="editbar"><button id="editbtn" class="btn alt" type="button">Edit layout</button>'
+            body.append('<div data-editor-only hidden><div class="editbar"><button id="editbtn" class="btn alt" type="button">Edit layout</button>'
+                        '<button id="editcancel" class="btn alt" type="button" hidden>Cancel</button>'
                         '<span id="editst" class="mvmsg"></span></div>'
-                        '<div id="trash" class="ed">Drop here to remove from this storage</div>')
+                        '<div id="trash" class="ed">Drop here to remove from this storage</div></div>')
         body.append(f'<div class="bins" id="layout" style="--n:{len(tree)}">')
         for b, shelves in tree.items():
             body.append(f'<section class="bin"><div class="binhd">{loc["unit_word"]} {b}</div>')
@@ -386,7 +389,7 @@ def mini_card(loc, it, b, s, p):
     href = item_href(loc, it, b, s, p, "")
     return (f'<a class="mini{" transit" if it.get("transit") else ""}" href="{href}" data-asset="{esc(it["ref"])}">{photo(loc, it)}'
             f'<div class="ref mono">{esc(it["ref"])}</div><div class="desc">{esc(it["description"])}</div>'
-            f'{transit_note(it.get("transit"))}</a>')
+            f'{transit_note(it.get("transit"))}<button class="ed rmasset" type="button">Remove</button></a>')
 
 
 def slot_cell(loc, b, s, p, its):
@@ -501,15 +504,19 @@ var ready=new Promise(function(res){
     acct=(r&&r.account)||app.getAllAccounts()[0]||null;if(acct)app.setActiveAccount(acct);res(!!acct)})
   .catch(function(){res(false)})});
 function gate(panel,onIn){ready.then(function(ok){panel.querySelector('.inner').hidden=!ok;if(ok&&onIn)onIn()})}
+// layout editing (bays) shows only for the editors in locations.json
+function isEditor(){var u=(window.MV_TEST_USER||(acct&&acct.username)||'').toLowerCase();
+  return !!u&&(','+(cfg.editors||'')+',').indexOf(','+u+',')>=0}
 function whenDom(f){if(document.readyState!=='loading')f();else document.addEventListener('DOMContentLoaded',f)}
 whenDom(function(){var gb=document.getElementById('gatebtn');if(gb)gb.onclick=function(){gb.disabled=true;signIn()};
   ready.then(function(ok){var g=document.getElementById('gated'),s=document.getElementById('gatescreen');
-    if(g)g.hidden=!ok;if(s)s.hidden=ok})});
+    if(g)g.hidden=!ok;if(s)s.hidden=ok;
+    [].forEach.call(document.querySelectorAll('[data-editor-only]'),function(e){e.hidden=!(ok&&isEditor())})})});
 // Hugo 06/11/2026: pick from a dropdown; a box to type in appears only for "Other..."
 function pick(selId){var s=document.getElementById(selId),o=document.getElementById(selId+'x');
   if(s&&o)s.addEventListener('change',function(){o.hidden=s.value!=='__other';if(!o.hidden)o.focus()});
   return function(){return s.value==='__other'?o.value.trim():s.value}}
-return {post:post,signIn:signIn,ready:ready,gate:gate,errText:errText,pick:pick,location:cfg.location};})();
+return {post:post,signIn:signIn,ready:ready,gate:gate,errText:errText,pick:pick,isEditor:isEditor,location:cfg.location};})();
 """
 
 
@@ -518,7 +525,7 @@ def sl_head(loc):
     mv = loc.get("move") or {}
     return (f'<div id="slcfg" hidden data-flow="{esc(mv["flow_url"])}" data-client="{esc(mv["client_id"])}"'
             f' data-tenant="{esc(mv["tenant_id"])}" data-redirect="{esc(loc["_base"] + "auth/")}"'
-            f' data-location="{esc(loc["title"])}"></div>'
+            f' data-location="{esc(loc["title"])}" data-editors="{esc(",".join(mv.get("editors", [])).lower())}"></div>'
             f'<script src="{MSAL_CDN}"></script><script>{SL_JS}</script>')
 
 
@@ -534,11 +541,32 @@ GATE_SCREEN = ('<div id="gatescreen" class="mv" hidden><div class="mvmsg">Sofrac
                '<button id="gatebtn" class="btn" type="button">Sign in with Sofraco</button></div>')
 
 
+FRESH_JS = """
+(function(){var f=document.getElementById('fresh');if(!f)return;var g=f.dataset.gen,src=f.dataset.src,busy=false;
+function check(){if(busy||window.SLediting||document.querySelector('.ghost'))return;
+  fetch(src+'?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+    if(d.generatedAt&&d.generatedAt>g){busy=true;var u=new URL(location.href);u.searchParams.set('v',Date.parse(d.generatedAt));location.replace(u.toString())}})
+  .catch(function(){})}
+check();
+window.SLfresh=function(){var n=0,iv=setInterval(function(){if(++n>30){clearInterval(iv);return}check()},8000)};
+document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
+})();
+"""
+
+
+def fresh(loc):
+    if not loc.get("asset_register"):
+        return ""
+    gen = load_layout(loc).get("generatedAt", "")
+    return (f'<div id="fresh" hidden data-gen="{esc(gen)}" data-src="{esc(loc["_base"] + "data/" + loc["slug"] + "/layout.json")}"></div>'
+            f'<script>{FRESH_JS}</script>')
+
+
 def gated(loc, body):
     """Whole page shown only after Sofraco sign-in."""
     if not live(loc):
         return body
-    return sl_head(loc) + GATE_SCREEN + f'<div id="gated" hidden>{body}</div>'
+    return sl_head(loc) + GATE_SCREEN + f'<div id="gated" hidden>{body}</div>' + fresh(loc)
 
 
 MOVE_JS = """
@@ -560,7 +588,7 @@ document.getElementById('mvgo').onclick=function(){
   if(!v){msg('Choose where it is going.',1);return}
   var b=this;b.disabled=true;msg('Sending…');
   SL.post(k?{action:'send',asset:A,to:k}:{action:'send',asset:A,to:'Other',toOther:v.slice(0,100)}).then(function(r){b.disabled=false;
-   if(r.ok){msg('Sent'+(r.isr?' - '+r.isr:'')+'. It now shows as in transit.');setTimeout(load,1500)}else msg(r.message||'Not sent.',1)})
+   if(r.ok){msg('Sent'+(r.isr?' - '+r.isr:'')+'. It now shows as in transit.');setTimeout(load,1500);if(window.SLfresh)SLfresh()}else msg(r.message||'Not sent.',1)})
   .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
 var c=document.getElementById('mvsig'),x=c.getContext('2d'),drawn=false,dn=false;
 function fit(){var r=c.getBoundingClientRect();if(!r.width)return;c.width=r.width*2;c.height=r.height*2;x.setTransform(2,0,0,2,0,0);x.lineWidth=2.2;x.lineCap='round';x.strokeStyle='#051233';drawn=false}
@@ -573,7 +601,7 @@ document.getElementById('mvdeliver').onclick=function(){
   if(!drawn){msg('Please sign before confirming the delivery.',1);return}
   var b=this;b.disabled=true;msg('Recording delivery…');
   SL.post({action:'deliver',asset:A,name:recv().slice(0,80),signature:c.toDataURL('image/png')}).then(function(r){b.disabled=false;
-   if(r.ok){msg('Delivered. Thank you.');fit();setTimeout(load,1500)}else msg(r.message||'Not recorded.',1)})
+   if(r.ok){msg('Delivered. Thank you.');fit();setTimeout(load,1500);if(window.SLfresh)SLfresh()}else msg(r.message||'Not recorded.',1)})
   .catch(function(e){b.disabled=false;msg(SL.errText(e),1)})};
 new ResizeObserver(fit).observe(c);show('');
 SL.gate(box,load);
@@ -587,7 +615,8 @@ BAY_JS = """
 var box=document.getElementById('bay');if(!box)return;
 var A=box.dataset.asset,st=document.getElementById('bayst'),bay=SL.pick('baynew');
 function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
-function done(r){if(r.ok)msg((r.message||'Done')+(r.warning?' Note: '+r.warning:''));else msg(r.message||'Not changed.',1)}
+function done(r){if(r.ok){msg('Saved. This page refreshes itself in about a minute.'+(r.warning?' Note: '+r.warning:''));if(window.SLfresh)SLfresh()}
+  else msg(r.message||'Not changed.',1)}
 document.getElementById('baymove').onclick=function(){
   var v=bay();
   if(!/^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/.test(v)){msg(v?'A bay is Cabinet.Shelf.Bay, for example 2.3.3.':'Choose the bay.',1);return}
@@ -610,7 +639,8 @@ SHELF_JS = """
 var box=document.getElementById('shelfedit');if(!box)return;
 var st=document.getElementById('shst'),pickBay=SL.pick('shbay');
 function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
-function done(r){if(r.ok)msg((r.message||'Done')+(r.warning?' Note: '+r.warning:''));else msg(r.message||'Not changed.',1)}
+function done(r){if(r.ok){msg('Saved. This page refreshes itself in about a minute.'+(r.warning?' Note: '+r.warning:''));if(window.SLfresh)SLfresh()}
+  else msg(r.message||'Not changed.',1)}
 function am(v){v=v.trim().toUpperCase().replace(/\\s+/g,'');if(/^\\d{1,5}$/.test(v))v='AM'+('00000'+v).slice(-5);return v}
 function bayOk(v){return /^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/.test(v)}
 document.getElementById('shadd').onclick=function(){
@@ -649,51 +679,87 @@ def dropdown(i, label, options, other, placeholder, first=None, numeric=False):
 # so a finger on a phone and a mouse on a PC both work. Every change goes through the flow.
 EDIT_JS = """
 (function(){
-var root=document.getElementById('layout'),btn=document.getElementById('editbtn');if(!root||!btn||!window.SL)return;
-var st=document.getElementById('editst'),trash=document.getElementById('trash'),on=false,drag=null;
+// Hugo 06/11/2026: edits show on screen at once; Done saves them all; Cancel throws them away.
+var root=document.getElementById('layout'),btn=document.getElementById('editbtn'),cancel=document.getElementById('editcancel');
+if(!root||!btn||!window.SL)return;
+var st=document.getElementById('editst'),trash=document.getElementById('trash'),on=false,drag=null,ops=[];
 function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
-function said(r,ok){if(r.ok)msg((r.message||ok)+(r.warning?' Note: '+r.warning:''));else msg(r.message||'Not changed.',1)}
 function am(v){v=(v||'').trim().toUpperCase().replace(/\\s+/g,'');if(/^\\d{1,5}$/.test(v))v='AM'+('00000'+v).slice(-5);return v}
-btn.onclick=function(){on=!on;document.body.classList.toggle('editing',on);btn.textContent=on?'Done':'Edit layout';
-  msg(on?'Drag an asset onto another bay. + asset adds one, + bay adds a bay.':'')};
+function count(){msg(ops.length?ops.length+' change'+(ops.length>1?'s':'')+' not saved yet - press Done to save.':'Drag an asset onto another bay. + asset adds one, + bay adds a bay.')}
+function setOn(v){on=v;window.SLediting=v;document.body.classList.toggle('editing',on);btn.textContent=on?'Done':'Edit layout';cancel.hidden=!on;
+  try{sessionStorage.setItem('sl-edit',on?'1':'')}catch(e){}if(on)count();else if(!ops.length)msg('')}
+// ---- record a change; later changes to the same asset/bay replace earlier ones
+function rec(op){
+  if(op.action==='move'||op.action==='remove'){var prev=ops.filter(function(o){return o.asset===op.asset})[0];
+    if(prev&&prev.action==='place'){if(op.action==='remove')ops.splice(ops.indexOf(prev),1);else prev.bay=op.bay;count();return}
+    ops=ops.filter(function(o){return o.asset!==op.asset})}
+  if(op.action==='removeBay'){var added=ops.filter(function(o){return o.action==='addBay'&&o.bay===op.bay})[0];
+    if(added){ops.splice(ops.indexOf(added),1);count();return}}
+  ops.push(op);count()}
+// ---- save on Done, one change at a time, in the order made
+function save(){
+  if(!ops.length){setOn(false);return}
+  var todo=ops.slice(),n=todo.length,fails=[];btn.disabled=true;cancel.disabled=true;
+  (function next(){
+    if(!todo.length){ops=[];btn.disabled=false;cancel.disabled=false;setOn(false);
+      if(fails.length)msg((n-fails.length)+' saved, '+fails.length+' not saved: '+fails.join(' / '),1);
+      else msg('All '+n+' change'+(n>1?'s':'')+' saved. This page refreshes itself in about a minute.');
+      if(window.SLfresh)SLfresh();return}
+    var o=todo.shift();o.location=SL.location;msg('Saving '+(n-todo.length)+' of '+n+'…');
+    SL.post(o).then(function(r){if(!r.ok)fails.push(r.message||o.action);if(r.warning)fails.push(r.warning);next()})
+      .catch(function(e){fails.push(SL.errText(e));next()})})()}
+btn.onclick=function(){if(!SL.isEditor())return;if(on)save();else setOn(true)};
+cancel.onclick=function(){if(ops.length&&!confirm('Throw away '+ops.length+' unsaved change(s)?'))return;
+  ops=[];try{sessionStorage.removeItem('sl-edit')}catch(e){}location.reload()};
+window.addEventListener('beforeunload',function(e){if(ops.length){e.preventDefault();e.returnValue=''}});
+SL.ready.then(function(){if(!SL.isEditor()){try{sessionStorage.removeItem('sl-edit')}catch(e){}return}
+  try{if(sessionStorage.getItem('sl-edit'))setOn(true)}catch(e){}});
 root.addEventListener('click',function(e){if(on&&e.target.closest('a'))e.preventDefault()},true);
-function slotAt(x,y){var el=document.elementFromPoint(x,y);return{slot:el&&el.closest('.slot'),trash:el&&el.closest('#trash')}}
-root.addEventListener('pointerdown',function(e){
-  if(!on)return;var c=e.target.closest('.mini');if(!c)return;e.preventDefault();
-  var r=c.getBoundingClientRect(),g=c.cloneNode(true);g.classList.add('ghost');g.style.width=r.width+'px';document.body.appendChild(g);
-  drag={c:c,g:g,dx:e.clientX-r.left,dy:e.clientY-r.top,from:c.closest('.slot')};c.classList.add('dragging');moveTo(e)});
-function moveTo(e){if(!drag)return;drag.g.style.left=(e.clientX-drag.dx)+'px';drag.g.style.top=(e.clientY-drag.dy)+'px';
-  drag.g.style.visibility='hidden';var h=slotAt(e.clientX,e.clientY);drag.g.style.visibility='';
-  [].forEach.call(document.querySelectorAll('.over'),function(x){x.classList.remove('over')});
-  drag.to=h.slot;drag.trashed=!!h.trash;if(h.slot)h.slot.classList.add('over');if(h.trash)trash.classList.add('over');
-  if(e.clientY<70)window.scrollBy(0,-14);else if(e.clientY>window.innerHeight-70)window.scrollBy(0,14)}
-document.addEventListener('pointermove',moveTo);
-document.addEventListener('pointerup',function(){
-  if(!drag)return;var d=drag;drag=null;d.g.remove();d.c.classList.remove('dragging');
-  [].forEach.call(document.querySelectorAll('.over'),function(x){x.classList.remove('over')});
+// ---- dragging: starts only after the finger/mouse really moves; always cleaned up
+function hit(x,y){var el=document.elementFromPoint(x,y);return{slot:el&&el.closest('.slot'),trash:el&&el.closest('#trash')}}
+function clearOver(){[].forEach.call(document.querySelectorAll('.over'),function(x){x.classList.remove('over')})}
+function end(drop){if(!drag)return;var d=drag;drag=null;if(d.g)d.g.remove();d.c.classList.remove('dragging');clearOver();
+  [].forEach.call(document.querySelectorAll('.ghost'),function(g){g.remove()});
+  if(!drop||!d.started)return;
   var A=d.c.dataset.asset;
-  if(d.trashed){if(!confirm('Take '+A+' off this storage? It stays in the Asset Register.'))return;
-    d.c.classList.add('pending');msg('Removing '+A+'…');
-    SL.post({action:'remove',asset:A}).then(function(r){said(r,'Removed.');if(r.ok)d.c.remove();else d.c.classList.remove('pending')})
-      .catch(function(e){d.c.classList.remove('pending');msg(SL.errText(e),1)});return}
+  if(d.trashed){d.c.remove();rec({action:'remove',asset:A});fixEmpty(d.from);return}
   if(!d.to||d.to===d.from)return;
-  var bay=d.to.dataset.bay,free=d.to.querySelector('.free');if(free)free.remove();d.to.classList.remove('empty');
-  d.to.appendChild(d.c);d.c.classList.add('pending');msg('Moving '+A+' to '+bay+'…');
-  SL.post({action:'move',asset:A,bay:bay,location:SL.location}).then(function(r){d.c.classList.remove('pending');said(r,'Moved.');
-      if(!r.ok)d.from.appendChild(d.c)})
-    .catch(function(e){d.c.classList.remove('pending');d.from.appendChild(d.c);msg(SL.errText(e),1)})});
+  var free=d.to.querySelector('.free');if(free)free.remove();d.to.classList.remove('empty');
+  d.to.appendChild(d.c);fixEmpty(d.from);rec({action:'move',asset:A,bay:d.to.dataset.bay})}
+function fixEmpty(s){if(s&&!s.querySelector('.mini')){s.classList.add('empty');if(!s.querySelector('.free')){var f=document.createElement('div');f.className='free';f.textContent='Free slot';s.appendChild(f)}}}
+root.addEventListener('pointerdown',function(e){
+  if(!on||drag||e.target.closest('button'))return;var c=e.target.closest('.mini');if(!c)return;e.preventDefault();
+  drag={c:c,from:c.closest('.slot'),x0:e.clientX,y0:e.clientY,started:false,id:e.pointerId}});
+document.addEventListener('pointermove',function(e){
+  if(!drag)return;
+  if(!drag.started){if(Math.abs(e.clientX-drag.x0)+Math.abs(e.clientY-drag.y0)<8)return;
+    var r=drag.c.getBoundingClientRect(),g=drag.c.cloneNode(true);g.classList.add('ghost');g.style.width=r.width+'px';
+    document.body.appendChild(g);drag.g=g;drag.dx=drag.x0-r.left;drag.dy=drag.y0-r.top;drag.started=true;drag.c.classList.add('dragging')}
+  e.preventDefault();drag.g.style.left=(e.clientX-drag.dx)+'px';drag.g.style.top=(e.clientY-drag.dy)+'px';
+  drag.g.style.visibility='hidden';var h=hit(e.clientX,e.clientY);drag.g.style.visibility='';
+  clearOver();drag.to=h.slot;drag.trashed=!!h.trash;if(h.slot)h.slot.classList.add('over');if(h.trash)trash.classList.add('over');
+  if(e.clientY<70)window.scrollBy(0,-14);else if(e.clientY>window.innerHeight-70)window.scrollBy(0,14)},{passive:false});
+document.addEventListener('pointerup',function(){end(true)});
+document.addEventListener('pointercancel',function(){end(false)});
+window.addEventListener('blur',function(){end(false)});
+document.addEventListener('visibilitychange',function(){if(document.hidden)end(false)});
+// ---- + asset, + bay, Remove bay: on screen now, saved on Done
 root.addEventListener('click',function(e){
   var b=e.target.closest('button.ed');if(!b||!on)return;e.preventDefault();e.stopPropagation();
-  if(b.classList.contains('addhere')){var bay=b.closest('.slot').dataset.bay,A=am(prompt('Asset number to add to bay '+bay+' (e.g. AM00869 or 869)'));
+  if(b.classList.contains('addhere')){var s=b.closest('.slot'),bay=s.dataset.bay,A=am(prompt('Asset number to add to bay '+bay+' (e.g. AM00869 or 869)'));
     if(!A)return;if(!/^AM\\d{5}$/.test(A)){msg('That is not an asset number.',1);return}
-    msg('Adding '+A+' to '+bay+'…');SL.post({action:'place',location:SL.location,bay:bay,asset:A}).then(function(r){said(r,'Added.')})
-      .catch(function(e){msg(SL.errText(e),1)})}
-  else if(b.classList.contains('addbay')){var nb=b.closest('.shelf').dataset.next;msg('Adding bay '+nb+'…');
-    SL.post({action:'addBay',location:SL.location,bay:nb}).then(function(r){said(r,'Bay added.')}).catch(function(e){msg(SL.errText(e),1)})}
-  else if(b.classList.contains('rmbay')){var s=b.closest('.slot');if(s.querySelector('.mini')){msg('Move or remove the assets in '+s.dataset.bay+' first.',1);return}
-    if(!confirm('Remove empty bay '+s.dataset.bay+'?'))return;msg('Removing bay '+s.dataset.bay+'…');
-    SL.post({action:'removeBay',location:SL.location,bay:s.dataset.bay}).then(function(r){said(r,'Bay removed.');if(r.ok)s.classList.add('pending')})
-      .catch(function(e){msg(SL.errText(e),1)})}
+    if(document.querySelector('.mini[data-asset="'+A+'"]')){msg(A+' is already on this layout - drag it instead.',1);return}
+    var c=document.createElement('a');c.className='mini added';c.dataset.asset=A;c.href='#';
+    c.innerHTML='<div class="ph"></div><div class="ref mono">'+A+'</div><div class="desc">New - details appear after saving</div><button class="ed rmasset" type="button">Remove</button>';
+    var free=s.querySelector('.free');if(free)free.remove();s.classList.remove('empty');s.appendChild(c);rec({action:'place',asset:A,bay:bay})}
+  else if(b.classList.contains('addbay')){var sh=b.closest('.shelf'),nb=sh.dataset.next,p=nb.split('.');
+    var ns=document.createElement('div');ns.className='slot empty';ns.dataset.bay=nb;
+    ns.innerHTML='<div class="code mono">'+nb+'</div><button class="ed addhere" type="button">+ asset</button><button class="ed rmbay" type="button">Remove bay</button><div class="free">Free slot</div>';
+    var row=sh.querySelector('.slots');row.appendChild(ns);row.style.setProperty('--p',row.children.length);
+    sh.dataset.next=p[0]+'.'+p[1]+'.'+(+p[2]+1);rec({action:'addBay',bay:nb})}
+  else if(b.classList.contains('rmasset')){var cd=b.closest('.mini'),fr=cd.closest('.slot');cd.remove();fixEmpty(fr);rec({action:'remove',asset:cd.dataset.asset})}
+  else if(b.classList.contains('rmbay')){var s2=b.closest('.slot');if(s2.querySelector('.mini')){msg('Move or remove the assets in '+s2.dataset.bay+' first.',1);return}
+    var row2=s2.parentNode;s2.remove();row2.style.setProperty('--p',row2.children.length);rec({action:'removeBay',bay:s2.dataset.bay})}
 },true);
 })();
 """
@@ -727,7 +793,7 @@ def move_panel(loc, ref):
 def bay_panel(loc, it, all_bays):
     if not live(loc):
         return ""
-    return (f'<details class="minor"><summary>Change storage bay <span class="mono">(now {esc(it["bin_location"])})</span></summary>'
+    return (f'<details class="minor" data-editor-only hidden><summary>Change storage bay <span class="mono">(now {esc(it["bin_location"])})</span></summary>'
             f'<div id="bay" class="mv" data-asset="{esc(it["ref"])}">{GATE}<div class="inner" hidden>'
             f'<div id="bayst" class="mvmsg"></div>'
             f'{dropdown("baynew", "Move to bay", [b for b in all_bays if b != it["bin_location"]], "New bay…", "Type the bay, e.g. 2.3.5", numeric=True)}'
@@ -742,7 +808,7 @@ def shelf_panel(loc, b, s, slots):
     bays = [f"{b}.{s}.{p}" for p in slots]
     nxt = f"{b}.{s}.{max(slots) + 1 if slots else 1}"
     empty = [f"{b}.{s}.{p}" for p, its in slots.items() if not its]
-    return (f'<div class="sec"><h2 class="mono">03 / Change this shelf</h2></div>'
+    return (f'<div data-editor-only hidden><div class="sec"><h2 class="mono">03 / Change this shelf</h2></div>'
             f'<div id="shelfedit" class="mv" data-next="{nxt}" data-first="{bays[0] if bays else nxt}">{GATE}'
             f'<div class="inner" hidden><div id="shst" class="mvmsg"></div>'
             f'<label>Asset number<input id="shasset" maxlength="12" autocomplete="off" placeholder="e.g. AM00869 or 869"></label>'
@@ -751,7 +817,7 @@ def shelf_panel(loc, b, s, slots):
             f'<button id="shnewbay" class="btn alt" type="button">Add bay {nxt}</button>'
             f'{"".join(f"<button class=\"btn alt shrm\" type=\"button\" data-bay=\"{x}\">Remove empty bay {x}</button>" for x in empty)}'
             f'<div class="hint">The asset must already be in the Asset Register. A bay can hold several assets.</div>'
-            f'</div></div><script>{SHELF_JS}</script>')
+            f'</div></div></div><script>{SHELF_JS}</script>')
 
 
 def transit_banner(tr):
