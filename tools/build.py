@@ -545,7 +545,7 @@ BAY_JS = """
 var box=document.getElementById('bay');if(!box)return;
 var A=box.dataset.asset,st=document.getElementById('bayst');
 function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
-function done(r){if(r.ok)msg((r.message||'Done')+' The pages update in about a minute.');else msg(r.message||'Not changed.',1)}
+function done(r){if(r.ok)msg((r.message||'Done')+(r.warning?' Note: '+r.warning:''));else msg(r.message||'Not changed.',1)}
 document.getElementById('baymove').onclick=function(){
   var v=document.getElementById('baynew').value.trim();
   if(!/^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/.test(v)){msg('Type the bay as Cabinet.Shelf.Bay, for example 2.3.3.',1);return}
@@ -568,7 +568,7 @@ SHELF_JS = """
 var box=document.getElementById('shelfedit');if(!box)return;
 var st=document.getElementById('shst');
 function msg(t,bad){st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
-function done(r){if(r.ok)msg((r.message||'Done')+' The pages update in about a minute.');else msg(r.message||'Not changed.',1)}
+function done(r){if(r.ok)msg((r.message||'Done')+(r.warning?' Note: '+r.warning:''));else msg(r.message||'Not changed.',1)}
 function am(v){v=v.trim().toUpperCase().replace(/\\s+/g,'');if(/^\\d{1,5}$/.test(v))v='AM'+('00000'+v).slice(-5);return v}
 function bayOk(v){return /^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/.test(v)}
 document.getElementById('shadd').onclick=function(){
