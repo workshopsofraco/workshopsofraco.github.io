@@ -475,9 +475,11 @@ var ready=new Promise(function(res){
   app.initialize().then(function(){return app.handleRedirectPromise()}).then(function(r){
     acct=(r&&r.account)||app.getAllAccounts()[0]||null;if(acct)app.setActiveAccount(acct);res(!!acct)})
   .catch(function(){res(false)})});
-function gate(panel,onIn){ready.then(function(ok){
-  panel.querySelector('.gate').hidden=ok;panel.querySelector('.inner').hidden=!ok;if(ok&&onIn)onIn()})
-  panel.querySelector('.gate button').onclick=function(){signIn()}}
+function gate(panel,onIn){ready.then(function(ok){panel.querySelector('.inner').hidden=!ok;if(ok&&onIn)onIn()})}
+function whenDom(f){if(document.readyState!=='loading')f();else document.addEventListener('DOMContentLoaded',f)}
+whenDom(function(){var gb=document.getElementById('gatebtn');if(gb)gb.onclick=function(){gb.disabled=true;signIn()};
+  ready.then(function(ok){var g=document.getElementById('gated'),s=document.getElementById('gatescreen');
+    if(g)g.hidden=!ok;if(s)s.hidden=ok})});
 return {post:post,signIn:signIn,ready:ready,gate:gate,errText:errText,location:cfg.location};})();
 """
 
@@ -496,8 +498,19 @@ def live(loc):
     return bool(mv.get("flow_url") and mv.get("client_id"))
 
 
-GATE = ('<div class="gate" hidden><button class="btn" type="button">Sign in with Sofraco</button>'
-        '<div class="hint">Sign in once with your own Sofraco account to make changes.</div></div>')
+GATE = ""   # the page itself is behind the one sign-in (gated)
+
+GATE_SCREEN = ('<div id="gatescreen" class="mv" hidden><div class="mvmsg">Sofraco staff only</div>'
+               '<p class="hint">Sign in once with your own Sofraco account. This phone will remember you.</p>'
+               '<button id="gatebtn" class="btn" type="button">Sign in with Sofraco</button></div>')
+
+
+def gated(loc, body):
+    """Whole page shown only after Sofraco sign-in."""
+    if not live(loc):
+        return body
+    return sl_head(loc) + GATE_SCREEN + f'<div id="gated" hidden>{body}</div>'
+
 
 MOVE_JS = """
 (function(){
@@ -771,7 +784,7 @@ def build():
         os.makedirs(out, exist_ok=True)
         with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as f:
             f.write(page(loc["title"], loc["title"], loc["subtitle"],
-                         cabinet_body(loc, tree, unplaced, items) + downloads_html(loc), 1, updated))
+                         gated(loc, cabinet_body(loc, tree, unplaced, items) + downloads_html(loc)), 1, updated))
         qr = {"cabinet": url_for(base, loc), "shelves": {}}
         qdir = ldir(loc, "qr")
         if os.path.isdir(qdir):
@@ -784,7 +797,7 @@ def build():
                 h1 = f'{loc["title"]} · Shelf {b}.{s}'
                 with open(os.path.join(d, "index.html"), "w", encoding="utf-8") as f:
                     f.write(page(h1, f"Shelf {b}.{s}", loc["title"],
-                                 (sl_head(loc) if live(loc) and loc.get("asset_register") else "") + shelf_body(loc, b, s, slots),
+                                 gated(loc, shelf_body(loc, b, s, slots)),
                                  2, updated).replace('src="img/', 'src="../img/'))
                 qr["shelves"][shelf_key(b, s)] = url_for(base, loc, b, s)
                 make_qr(qr["shelves"][shelf_key(b, s)], os.path.join(qdir, f"shelf-{shelf_slug(b, s)}.png"))
@@ -804,7 +817,7 @@ def build():
                     os.makedirs(d, exist_ok=True)
                     with open(os.path.join(d, "index.html"), "w", encoding="utf-8") as f:
                         f.write(page(f'{it["ref"]} · {it["description"]}', it["ref"], loc["title"],
-                                     (sl_head(loc) if live(loc) else "") + asset_body(loc, it, it.get("_reg"), all_bays),
+                                     gated(loc, asset_body(loc, it, it.get("_reg"), all_bays)),
                                      3, updated).replace('src="img/', 'src="../../img/'))
         with open(ws(loc["qr_json"]), "w", encoding="utf-8") as f:
             json.dump(qr, f, indent=2)
