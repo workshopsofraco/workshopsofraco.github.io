@@ -98,7 +98,7 @@ function show(id){['mvlogin','mvsend','mvdel'].forEach(function(x){document.getE
 function token(){
   if(window.MV_TEST_TOKEN)return Promise.resolve(window.MV_TEST_TOKEN);
   return app.acquireTokenSilent({scopes:SCOPE,account:acct}).then(function(r){return r.accessToken})
-   .catch(function(){return app.acquireTokenRedirect({scopes:SCOPE,account:acct})})}
+   .catch(function(){return app.acquireTokenRedirect({scopes:SCOPE,account:acct,onRedirectNavigate:go})})}
 function post(o){return token().then(function(t){return fetch(U,{method:'POST',
   headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify(o)})})
   .then(function(r){if(r.status===401||r.status===403)throw new Error('auth');return r.json()})}
@@ -110,7 +110,8 @@ function load(){msg('Checking where it is…');post({action:'status',asset:A}).t
   if(r.inTransit){document.getElementById('mvroute').textContent=(r.from||'?')+' → '+(r.to||'?')+(r.isr?' · '+r.isr:'');show('mvdel');msg('In transit - sign below when it arrives'+who)}
   else{show('mvsend');msg('Currently at: '+(r.whereabouts||'unknown')+who)}
  }).catch(fail)}
-document.getElementById('mvsignin').onclick=function(){app.loginRedirect({scopes:SCOPE})};
+function go(u){window.location.href=u;return false}
+document.getElementById('mvsignin').onclick=function(){msg('Opening Sofraco sign-in…');app.loginRedirect({scopes:SCOPE,onRedirectNavigate:go}).catch(function(e){msg('Sign-in could not start: '+(e.errorCode||e.message),1)})};
 var to=document.getElementById('mvto'),oth=document.getElementById('mvother');
 to.onchange=function(){oth.hidden=to.value!=='Other'};
 document.getElementById('mvgo').onclick=function(){
@@ -143,5 +144,5 @@ app.initialize().then(function(){return app.handleRedirectPromise()}).then(funct
 }).catch(function(){show('mvlogin');msg('Sign-in did not finish. Try again.',1)});
 })();
 </script><div class="sec"><h2 class="mono">01 / Specifications</h2></div><dl class="spec"><dt>Location</dt><dd><a href="../../1-1/#p4" class="mono">1.1.4</a> · Cabinet 1, Shelf 1</dd><dt>Asset No</dt><dd><b class="mono">AM00135</b></dd><dt>Description</dt><dd>Phase Rotation Indicator</dd><dt>Make</dt><dd>Fluke</dd><dt>Model</dt><dd>9040</dd><dt>Serial No</dt><dd><span class="mono">CMX764734</span></dd><dt>Specifications</dt><dd>Phase Rotation Indicator, 40-690V AC, 15-400Hz, 1mA pickup, CAT III 600V, LCD display, no battery required, IP40, 200g, 124x61x27mm</dd><dt>Category</dt><dd>Measurement Equipment / Electrical</dd><dt>Status</dt><dd><span class="badge ok">Active</span></dd><dt>Whereabouts</dt><dd>Workshop</dd><dt>Requirement</dt><dd>Indication Only</dd></dl><div class="sec"><h2 class="mono">02 / Documents</h2></div><a class="btn alt" target="_blank" rel="noopener" href="https://sofraco.sharepoint.com/sites/AssetManagement/Shared Documents/01. Assets/AM00135">Manuals, datasheets &amp; all certificates</a><div class="hint">Asset folder in SharePoint · opens with your Sofraco sign-in</div></main>
-<footer><span>Sofraco Engineering Systems</span><span class="mono">Updated 05/11/2026 14:27</span></footer>
+<footer><span>Sofraco Engineering Systems</span><span class="mono">Updated 05/11/2026 14:29</span></footer>
 </body></html>
