@@ -685,7 +685,7 @@ EDIT_JS = """
 var root=document.getElementById('layout'),btn=document.getElementById('editbtn'),cancel=document.getElementById('editcancel');
 if(!root||!window.SL)return;
 var st=document.getElementById('editst'),trash=document.getElementById('trash'),on=false,drag=null,ops=[];
-var fresh=document.getElementById('fresh'),GEN=fresh?fresh.dataset.gen:'',KEY='sl-saved:'+location.pathname;
+var fresh=document.getElementById('fresh'),GEN=fresh?fresh.dataset.gen:'';
 function msg(t,bad){if(!st)return;st.textContent=t;st.className='mvmsg'+(bad?' bad':'')}
 function am(v){v=(v||'').trim().toUpperCase().replace(/\\s+/g,'');if(/^\\d{1,5}$/.test(v))v='AM'+('00000'+v).slice(-5);return v}
 function esc(s){return String(s||'').replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
@@ -702,40 +702,44 @@ function addBay(bay){if(slot(bay))return slot(bay);var sh=shelfOf(bay);if(!sh)re
   if(after)after.after(ns);else row.prepend(ns);row.style.setProperty('--p',row.children.length);
   var n=sh.dataset.next.split('.');if(+p[2]>=+n[2])sh.dataset.next=p[0]+'.'+p[1]+'.'+(+p[2]+1);return ns}
 function dropBay(bay){var s=slot(bay);if(!s||s.querySelector('.mini'))return;var row=s.parentNode;s.remove();row.style.setProperty('--p',row.children.length)}
-function newCard(A,desc){var c=document.createElement('a');c.className='mini added';c.dataset.asset=A;c.href='asset/'+A+'/';
-  c.innerHTML='<div class="ph"></div><div class="ref mono">'+esc(A)+'</div><div class="desc">'+esc(desc||'New - details appear shortly')+'</div><button class="ed rmasset" type="button">Remove</button>';return c}
+function newCard(A,desc,pending){var c=document.createElement('a');c.className='mini'+(pending?' added':'');c.dataset.asset=A;c.href='asset/'+A+'/';
+  c.innerHTML='<div class="ph"></div><div class="ref mono">'+esc(A)+'</div><div class="desc">'+esc(desc||'')+'</div><button class="ed rmasset" type="button">Remove</button>';
+  photoInto(c,A);return c}
 var RAW='https://raw.githubusercontent.com/workshopsofraco/workshopsofraco.github.io/main/data/images/';
 function photoInto(c,A,data){var ph=c.querySelector('.ph');if(!ph||ph.querySelector('img'))return;var img=document.createElement('img');img.alt=A;
-  var srcs=(data?[data]:[]).concat([RAW+A+'_OEM.webp',RAW+A+'_OEM.png']),i=0;
+  var srcs=(data?[data]:[]).concat(['img/'+A+'_OEM.webp',RAW+A+'_OEM.webp',RAW+A+'_OEM.png']),i=0;
   img.onerror=function(){i++;if(i<srcs.length)img.src=srcs[i];else img.remove()};img.src=srcs[0];ph.appendChild(img)}
-function details(A){var c=card(A);if(!c)return;photoInto(c,A);
+function details(A){var c=card(A);if(!c)return;
   SL.post({action:'status',asset:A}).then(function(r){var c2=card(A);if(!c2)return;
     if(r&&r.found===false){c2.classList.add('bad');c2.querySelector('.desc').textContent='Not in the Asset Register';
       msg(A+' is not in the Asset Register - it will not be saved.',1);ops=ops.filter(function(o){return o.asset!==A});return}
     var d=[r.Make,r.Model,r.Desc2].filter(Boolean).join(' ')||r.description;if(d)c2.querySelector('.desc').textContent=d;
     if(r.photo){var old=c2.querySelector('.ph img');if(old)old.remove();photoInto(c2,A,r.photo)}}).catch(function(){})}
-function put(A,bay,desc){var s=slot(bay)||addBay(bay);if(!s)return;var c=card(A)||newCard(A,desc),from=c.parentNode;
+function put(A,bay,desc,pending){var s=slot(bay)||addBay(bay);if(!s)return;var c=card(A)||newCard(A,desc,pending),from=c.parentNode;
   if(from!==s){fill(s);s.appendChild(c);if(from&&from.classList&&from.classList.contains('slot'))fixEmpty(from)}}
 function take(A){var c=card(A);if(!c)return;var s=c.parentNode;c.remove();fixEmpty(s)}
-function apply(o){if(o.action==='move'||o.action==='place')put(o.asset,o.bay,o.desc);else if(o.action==='remove')take(o.asset);
-  else if(o.action==='addBay')addBay(o.bay);else if(o.action==='removeBay')dropBay(o.bay)}
-// ---------------- saved changes survive a reload until the rebuilt page has them
-function saved(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
-function remember(list){try{var s=saved()||{ops:[]};s.ops=s.ops.concat(list);s.at=new Date().toISOString();localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}}
-(function(){var s=saved();if(!s)return;if(GEN&&GEN>=s.at){try{localStorage.removeItem(KEY)}catch(e){}return}s.ops.forEach(function(o){apply(o);if(o.action==='place'&&card(o.asset))photoInto(card(o.asset),o.asset)})})();
-// ---------------- line up with the live register as soon as the page opens
-function live(){SL.post({action:'layout',location:SL.location}).then(function(r){
-  if(!r||!r.ok||!r.assets)return;if(on&&ops.length)return;
-  (r.bays||[]).forEach(addBay);
-  var keep={};r.assets.forEach(function(a){if(!/^\\d+\\.\\d+\\.\\d+$/.test(a.StorageBay||''))return;keep[a.AssetNumber]=1;
-    var had=!!card(a.AssetNumber);put(a.AssetNumber,a.StorageBay,[a.Make,a.Model,a.Desc2].filter(Boolean).join(' '));
-    if(!had&&card(a.AssetNumber))photoInto(card(a.AssetNumber),a.AssetNumber);
-    var c=card(a.AssetNumber);if(c){c.classList.toggle('transit',!!a.transit);var tn=c.querySelector('.tr');if(tn)tn.remove();
-      if(a.transit){var d=document.createElement('div');d.className='tr';d.textContent='In transit → '+(a.transit.to||'?')+' · not signed yet';c.insertBefore(d,c.querySelector('.ed'))}}});
+// ---------------- the page always opens on the last layout this phone saw (no flicker on refresh),
+// then checks the live register in the background and only changes what is different.
+var VIEW='sl-view:'+location.pathname.replace(/index\\.html$/,'');
+function transitOn(c,to){c.classList.toggle('transit',!!to);var tn=c.querySelector('.tr');if(tn)tn.remove();
+  if(to){var d=document.createElement('div');d.className='tr';d.textContent='In transit → '+to+' · not signed yet';c.insertBefore(d,c.querySelector('.ed'))}}
+function applyLayout(r){
+  (r.bays||[]).forEach(addBay);var keep={};
+  (r.assets||[]).forEach(function(a){if(!/^\\d+\\.\\d+\\.\\d+$/.test(a.StorageBay||''))return;keep[a.AssetNumber]=1;
+    put(a.AssetNumber,a.StorageBay,a.desc||[a.Make,a.Model,a.Desc2].filter(Boolean).join(' '));
+    var c=card(a.AssetNumber);if(c)transitOn(c,a.transitTo||(a.transit&&(a.transit.to||'?')))});
   [].forEach.call(root.querySelectorAll('.mini'),function(c){if(!keep[c.dataset.asset])take(c.dataset.asset)});
   var bays={};(r.bays||[]).forEach(function(b){bays[b]=1});
-  [].forEach.call(root.querySelectorAll('.slot.empty'),function(s){if(!bays[s.dataset.bay])dropBay(s.dataset.bay)});
-  try{localStorage.removeItem(KEY)}catch(e){}}).catch(function(){})}
+  [].forEach.call(root.querySelectorAll('.slot.empty'),function(s){if(!bays[s.dataset.bay])dropBay(s.dataset.bay)})}
+function snapshot(){try{var v={at:new Date().toISOString(),bays:[],assets:[]};
+  [].forEach.call(root.querySelectorAll('.slot'),function(s){v.bays.push(s.dataset.bay)});
+  [].forEach.call(root.querySelectorAll('.mini'),function(c){var tn=c.querySelector('.tr');
+    v.assets.push({AssetNumber:c.dataset.asset,StorageBay:c.closest('.slot').dataset.bay,desc:c.querySelector('.desc').textContent,
+      transitTo:tn?tn.textContent.replace(/^In transit → | · not signed yet$/g,''):null})});
+  localStorage.setItem(VIEW,JSON.stringify(v))}catch(e){}}
+(function(){try{var v=JSON.parse(localStorage.getItem(VIEW)||'null');if(v&&(!GEN||v.at>GEN))applyLayout(v)}catch(e){}})();
+function live(){SL.post({action:'layout',location:SL.location}).then(function(r){
+  if(!r||!r.ok||!r.assets||(on&&ops.length))return;applyLayout(r);snapshot()}).catch(function(){})}
 SL.ready.then(function(ok){if(ok)live()});
 if(!btn)return;
 // ---------------- editing
@@ -749,7 +753,8 @@ function rec(op){
   if(op.action==='removeBay'){var added=ops.filter(function(o){return o.action==='addBay'&&o.bay===op.bay})[0];
     if(added){ops.splice(ops.indexOf(added),1);count();return}}
   ops.push(op);count()}
-function finish(n,fails,done){ops=[];btn.disabled=false;cancel.disabled=false;setOn(false);remember(done);
+function finish(n,fails,done){ops=[];btn.disabled=false;cancel.disabled=false;setOn(false);
+  [].forEach.call(root.querySelectorAll('.mini.added'),function(c){c.classList.remove('added')});snapshot();
   if(fails.length)msg((n-fails.length)+' saved, '+fails.length+' not saved: '+fails.join(' / '),1);else msg('All '+n+' change'+(n>1?'s':'')+' saved.');
   if(window.SLfresh)SLfresh()}
 function one(todo,n,fails,done){if(!todo.length)return finish(n,fails,done);var o=todo.shift();
@@ -803,7 +808,7 @@ root.addEventListener('click',function(e){
   if(b.classList.contains('addhere')){var s=b.closest('.slot'),bay=s.dataset.bay,A=am(prompt('Asset number to add to bay '+bay+' (e.g. AM00869 or 869)'));
     if(!A)return;if(!/^AM\\d{5}$/.test(A)){msg('That is not an asset number.',1);return}
     if(card(A)){msg(A+' is already on this layout - drag it instead.',1);return}
-    put(A,bay);rec({action:'place',asset:A,bay:bay});details(A)}
+    put(A,bay,null,true);rec({action:'place',asset:A,bay:bay});details(A)}
   else if(b.classList.contains('addbay')){var nb=b.closest('.shelf').dataset.next;addBay(nb);rec({action:'addBay',bay:nb})}
   else if(b.classList.contains('rmasset')){var A2=b.closest('.mini').dataset.asset;take(A2);rec({action:'remove',asset:A2})}
   else if(b.classList.contains('rmbay')){var s2=b.closest('.slot');if(s2.querySelector('.mini')){msg('Move or remove the assets in '+s2.dataset.bay+' first.',1);return}
