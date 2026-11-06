@@ -764,6 +764,8 @@ function save(){
   SL.post({action:'batch',location:SL.location,ops:list}).then(function(r){
     if(r&&r.results){var fails=[],done=[];r.results.forEach(function(x){if(x.ok)done.push(list[x.i]);else fails.push(x.message||list[x.i].action)});
       if(r.warning)fails.push(r.warning);finish(n,fails,done)}
+    else if(r&&r.ok)finish(n,[],list)   // more than 20 changes: the flow accepts them and saves after replying
+    else if(r&&r.message&&!/unknown|action/i.test(r.message))finish(n,[r.message],[])
     else one(list.slice(),n,[],[])})
   .catch(function(){one(list.slice(),n,[],[])})}
 btn.onclick=function(){if(!SL.isEditor())return;if(on)save();else setOn(true)};
