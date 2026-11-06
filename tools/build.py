@@ -284,7 +284,7 @@ body.editing .slot{outline:1px dashed var(--blue);outline-offset:-3px}
 body.editing .mini{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
 .mini.dragging{opacity:.3}.mini.pending{opacity:.55}
 .ghost .ph{height:64px;display:flex;align-items:flex-end;justify-content:center}.ghost .ph img{max-height:64px;max-width:100%;object-fit:contain}
-.ghost .desc{font-size:10.5px}.mini.added{border:2px dashed var(--blue)}
+.ghost .desc{font-size:10.5px}.mini.added{border:2px dashed var(--blue)}.mini.bad{border-color:var(--red)}.mini.bad .desc{color:var(--red)}
 .ghost{position:fixed;z-index:50;pointer-events:none;opacity:.9;box-shadow:0 8px 24px rgba(5,18,51,.35);background:#fff}
 .slot.over,#trash.over{background:#E3EEFF;outline:2px solid var(--blue)}
 .slot .ed{font:inherit;font-size:11px;font-weight:700;color:var(--blue);background:#fff;border:1px solid var(--blue);padding:3px 6px;margin:4px 2px 0;cursor:pointer}
@@ -704,6 +704,16 @@ function addBay(bay){if(slot(bay))return slot(bay);var sh=shelfOf(bay);if(!sh)re
 function dropBay(bay){var s=slot(bay);if(!s||s.querySelector('.mini'))return;var row=s.parentNode;s.remove();row.style.setProperty('--p',row.children.length)}
 function newCard(A,desc){var c=document.createElement('a');c.className='mini added';c.dataset.asset=A;c.href='asset/'+A+'/';
   c.innerHTML='<div class="ph"></div><div class="ref mono">'+esc(A)+'</div><div class="desc">'+esc(desc||'New - details appear shortly')+'</div><button class="ed rmasset" type="button">Remove</button>';return c}
+var RAW='https://raw.githubusercontent.com/workshopsofraco/workshopsofraco.github.io/main/data/images/';
+function photoInto(c,A,data){var ph=c.querySelector('.ph');if(!ph||ph.querySelector('img'))return;var img=document.createElement('img');img.alt=A;
+  var srcs=(data?[data]:[]).concat([RAW+A+'_OEM.webp',RAW+A+'_OEM.png']),i=0;
+  img.onerror=function(){i++;if(i<srcs.length)img.src=srcs[i];else img.remove()};img.src=srcs[0];ph.appendChild(img)}
+function details(A){var c=card(A);if(!c)return;photoInto(c,A);
+  SL.post({action:'status',asset:A}).then(function(r){var c2=card(A);if(!c2)return;
+    if(r&&r.found===false){c2.classList.add('bad');c2.querySelector('.desc').textContent='Not in the Asset Register';
+      msg(A+' is not in the Asset Register - it will not be saved.',1);ops=ops.filter(function(o){return o.asset!==A});return}
+    var d=[r.Make,r.Model,r.Desc2].filter(Boolean).join(' ')||r.description;if(d)c2.querySelector('.desc').textContent=d;
+    if(r.photo){var old=c2.querySelector('.ph img');if(old)old.remove();photoInto(c2,A,r.photo)}}).catch(function(){})}
 function put(A,bay,desc){var s=slot(bay)||addBay(bay);if(!s)return;var c=card(A)||newCard(A,desc),from=c.parentNode;
   if(from!==s){fill(s);s.appendChild(c);if(from&&from.classList&&from.classList.contains('slot'))fixEmpty(from)}}
 function take(A){var c=card(A);if(!c)return;var s=c.parentNode;c.remove();fixEmpty(s)}
@@ -712,13 +722,14 @@ function apply(o){if(o.action==='move'||o.action==='place')put(o.asset,o.bay,o.d
 // ---------------- saved changes survive a reload until the rebuilt page has them
 function saved(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
 function remember(list){try{var s=saved()||{ops:[]};s.ops=s.ops.concat(list);s.at=new Date().toISOString();localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}}
-(function(){var s=saved();if(!s)return;if(GEN&&GEN>=s.at){try{localStorage.removeItem(KEY)}catch(e){}return}s.ops.forEach(apply)})();
+(function(){var s=saved();if(!s)return;if(GEN&&GEN>=s.at){try{localStorage.removeItem(KEY)}catch(e){}return}s.ops.forEach(function(o){apply(o);if(o.action==='place'&&card(o.asset))photoInto(card(o.asset),o.asset)})})();
 // ---------------- line up with the live register as soon as the page opens
 function live(){SL.post({action:'layout',location:SL.location}).then(function(r){
   if(!r||!r.ok||!r.assets)return;if(on&&ops.length)return;
   (r.bays||[]).forEach(addBay);
   var keep={};r.assets.forEach(function(a){if(!/^\\d+\\.\\d+\\.\\d+$/.test(a.StorageBay||''))return;keep[a.AssetNumber]=1;
-    put(a.AssetNumber,a.StorageBay,[a.Make,a.Model,a.Desc2].filter(Boolean).join(' '));
+    var had=!!card(a.AssetNumber);put(a.AssetNumber,a.StorageBay,[a.Make,a.Model,a.Desc2].filter(Boolean).join(' '));
+    if(!had&&card(a.AssetNumber))photoInto(card(a.AssetNumber),a.AssetNumber);
     var c=card(a.AssetNumber);if(c){c.classList.toggle('transit',!!a.transit);var tn=c.querySelector('.tr');if(tn)tn.remove();
       if(a.transit){var d=document.createElement('div');d.className='tr';d.textContent='In transit → '+(a.transit.to||'?')+' · not signed yet';c.insertBefore(d,c.querySelector('.ed'))}}});
   [].forEach.call(root.querySelectorAll('.mini'),function(c){if(!keep[c.dataset.asset])take(c.dataset.asset)});
@@ -790,7 +801,7 @@ root.addEventListener('click',function(e){
   if(b.classList.contains('addhere')){var s=b.closest('.slot'),bay=s.dataset.bay,A=am(prompt('Asset number to add to bay '+bay+' (e.g. AM00869 or 869)'));
     if(!A)return;if(!/^AM\\d{5}$/.test(A)){msg('That is not an asset number.',1);return}
     if(card(A)){msg(A+' is already on this layout - drag it instead.',1);return}
-    put(A,bay);rec({action:'place',asset:A,bay:bay})}
+    put(A,bay);rec({action:'place',asset:A,bay:bay});details(A)}
   else if(b.classList.contains('addbay')){var nb=b.closest('.shelf').dataset.next;addBay(nb);rec({action:'addBay',bay:nb})}
   else if(b.classList.contains('rmasset')){var A2=b.closest('.mini').dataset.asset;take(A2);rec({action:'remove',asset:A2})}
   else if(b.classList.contains('rmbay')){var s2=b.closest('.slot');if(s2.querySelector('.mini')){msg('Move or remove the assets in '+s2.dataset.bay+' first.',1);return}
