@@ -880,6 +880,19 @@ def transit_banner(tr):
             f'{" · " + esc(tr["isr"]) if tr.get("isr") else ""} · <b>not signed for yet</b></div>')
 
 
+def cal_status(reg):
+    """AM-R055 CalibrationStatus (Calibrated / Out of Calibration / Indication Only / Not Required)."""
+    v = (reg or {}).get("CalibrationStatus")
+    return (v.get("Value") if isinstance(v, dict) else v) or ""
+
+
+def cal_badge(cs):
+    """Green Calibrated, red Out of Calibration; Indication Only and No Cal Required neutral (Hugo 05/11/2026)."""
+    label = "No Cal Required" if cs == "Not Required" else cs
+    kind = {"Calibrated": "ok", "Out of Calibration": "bad"}.get(cs, "")
+    return f'<span class="badge {kind}">{esc(label)}</span>'
+
+
 def asset_body(loc, it, reg, all_bays):
     b, s, p = it["bin_location"].split(".")
     rows = []
@@ -897,12 +910,13 @@ def asset_body(loc, it, reg, all_bays):
         row("Serial No", f'<span class="mono">{esc(reg.get("SerialNo") or "")}</span>' if reg.get("SerialNo") else "")
         row("Specifications", esc(reg.get("Specification") or ""))
         row("Category", esc(" / ".join(x for x in (reg.get("Category"), reg.get("Sub_x002d_Category")) if x)))
+        # AM-R055 (11/11/2026): EquipmentStatus is operational only (Active / Out of Service);
+        # CalibrationStatus says whether it is in calibration
         status = reg.get("EquipmentStatus") or ""
-        # Hugo 05/11/2026: an item that doesn't need NATA calibration is never shown as
-        # "Out of Calibration" - it reads Indication Only, or No Cal Required
-        if status == "Out of Calibration" and reg.get("EquipmentRequirement") != "Calibration NATA":
-            status = "Indication Only" if reg.get("EquipmentRequirement") == "Indication Only" else "No Cal Required"
-        row("Status", f'<span class="badge {"ok" if status == "Active" else "" if status in ("Indication Only", "No Cal Required") else "bad"}">{esc(status)}</span>' if status else "")
+        row("Status", f'<span class="badge {"ok" if status == "Active" else "bad"}">{esc(status)}</span>' if status else "")
+        cs = cal_status(reg)
+        if cs and reg.get("EquipmentRequirement") != "Calibration NATA":
+            row("Calibration", cal_badge(cs))
         row("Whereabouts", esc(reg.get("Whereabouts") or ""))
         row("Requirement", esc(reg.get("EquipmentRequirement") or ""))
     else:
@@ -918,9 +932,8 @@ def asset_body(loc, it, reg, all_bays):
         crow = []
         # Hugo 05/11/2026: one Calibration Status field - "Calibrated" in green, or red when it
         # isn't - instead of dates the reader has to work out
-        ok = due and not overdue and (reg.get("EquipmentStatus") or "Active") != "Out of Calibration"
-        crow.append(f'<dt>Calibration status</dt><dd><span class="badge {"ok" if ok else "bad"}">'
-                    f'{"Calibrated" if ok else "Out of Calibration"}</span></dd>')
+        cs = cal_status(reg) or ("Calibrated" if due and not overdue else "Out of Calibration")
+        crow.append(f'<dt>Calibration status</dt><dd>{cal_badge(cs)}</dd>')
         if reg.get("CertifyingOrganisation"):
             crow.append(f"<dt>Certified by</dt><dd>{esc(str(reg['CertifyingOrganisation']))}</dd>")
         cal.append(f'<div class="sec"><h2 class="mono">02 / {"NATA calibration" if "NATA" in req else "Calibration"}</h2></div>')
@@ -1129,7 +1142,7 @@ BAYS_LIST = "84d715f4-429f-419d-9f3d-113bf39f176d"   # SLB - Storage Layout Bays
 ISR_SITE = SP + "/sites/Field-Service"
 ISR_LIST = "bdd4169f-e683-4ed8-bd79-1efe49f1dd02"
 ASSET_FIELDS = ["AssetNumber", "StorageBay", "Desc2", "Make", "Model", "SerialNo", "Specification", "Category",
-                "Sub_x002d_Category", "EquipmentRequirement", "EquipmentStatus", "Whereabouts",
+                "Sub_x002d_Category", "EquipmentRequirement", "EquipmentStatus", "CalibrationStatus", "Whereabouts",
                 "Calibration_x002f_InspectionDate", "DueDate", "CertifyingOrganisation",
                 "RequirementFrequency_x002a_month", "Link", "AttachmentFiles"]  # never prices or contacts
 ASSET_PHOTOS = os.path.join(os.environ.get("USERPROFILE", ""), r"SOFRACO\Assets - AM\01. Assets")
