@@ -231,6 +231,33 @@ main{max-width:1180px;margin:0 auto;padding:18px 16px 40px}
 .draw{width:100%;height:100%;color:var(--deep)}
 .slot .draw{height:64px}
 /* shelf page */
+.nav{font-size:13px;color:var(--grey);margin:0 0 10px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
+.nav a{color:var(--grey);text-decoration:none}.nav i{font-style:normal;opacity:.6}.nav b{color:var(--blue);font-weight:700}
+.back{display:inline-flex;align-items:center;gap:8px;background:var(--panel);color:var(--deep);border-radius:10px;padding:9px 14px;font-weight:600;font-size:14px;text-decoration:none;margin:4px 0 16px}
+.ttl .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey);font-weight:700}
+.ttl .big{font-size:44px;font-weight:700;color:var(--blue);line-height:1.05;margin:2px 0 4px}
+.ttl .meta{font-size:13px;color:var(--grey);margin-bottom:6px}
+.rowhint{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--grey);margin:14px 0 6px}
+.bayrow{display:grid;grid-template-columns:repeat(var(--p),minmax(112px,1fr));gap:8px;overflow-x:auto;padding:8px;background:var(--panel);border-radius:14px;-webkit-overflow-scrolling:touch}
+.bcol{display:flex;flex-direction:column;gap:8px;min-width:0}
+.bhd{display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:10px;padding:9px 12px;color:var(--deep);font-weight:700;text-decoration:none;box-shadow:var(--sh)}
+.bhd small{color:var(--blue);font-weight:700}
+.bfree{flex:1;min-height:140px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--grey);font-size:11px;letter-spacing:.12em;text-transform:uppercase;border:1.5px dashed #D3DEEE}
+.baysel{display:grid;grid-template-columns:repeat(var(--p),1fr);gap:8px;padding:8px;background:var(--panel);border-radius:14px;margin:6px 0 18px}
+.baysel a{text-align:center;padding:11px 0;border-radius:10px;background:#fff;color:var(--blue);font-weight:700;text-decoration:none;box-shadow:var(--sh)}
+.baysel a.here{background:var(--deep);color:#fff}.baysel a.empty{color:var(--grey)}.baysel a.empty::after{content:" · free";font-size:.75em}
+.acards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.bcol .acards,.bcol .acard{width:100%}.bcol .acards{grid-template-columns:1fr;gap:8px}.bcol .acard{padding:7px}.bcol .acard .pic{height:84px}.bcol .acard .pic img{max-height:74px}.bcol .acard .nm{font-size:12px}.bcol .bhd{padding:8px 10px}
+.acard{display:block;background:#fff;border-radius:12px;box-shadow:var(--sh);padding:10px;text-decoration:none;color:inherit}
+.acard .pic{background:var(--panel);border-radius:9px;height:120px;display:flex;align-items:center;justify-content:center}
+.acard .pic img{max-height:104px;max-width:88%;object-fit:contain}
+.acard .am{color:var(--blue);font-weight:700;font-size:12px;margin-top:9px}
+.acard .nm{font-weight:600;font-size:13px;margin-top:3px;color:var(--ink);overflow-wrap:anywhere}
+.acard .mk{font-size:12px;color:var(--grey);margin-top:3px}
+.acard .badge{margin-top:7px;font-size:11px}
+.acard .trp{margin-top:7px;background:#FFF4E5;color:#B45309;border-radius:8px;padding:6px 8px;font-size:11px;font-weight:700}
+.acard.transit{box-shadow:0 0 0 2px #F59E0B,var(--sh)}
+.empty-bay{grid-column:1/-1;border:1.5px dashed #D3DEEE;border-radius:12px;padding:30px;text-align:center;color:var(--grey)}
 .strip{display:grid;grid-template-columns:repeat(var(--p),1fr);gap:6px;border-radius:12px;padding:8px;background:var(--panel)}
 .strip a{display:block;text-align:center;padding:10px 0;border-radius:8px;box-shadow:var(--sh);background:#fff;color:var(--deep);text-decoration:none;font-weight:800}
 #baylist .code{display:none}.hero a.code{display:block}.strip a.here{background:var(--deep);color:#fff}.strip a.empty{color:var(--grey)}.strip a.empty::after{content:" · free";font-size:.8em}
@@ -427,47 +454,50 @@ def register_table(loc, rows, link):
     return "".join(out)
 
 
+def nav(loc, up, parts):
+    """Hugo 13/11/2026: the path shows exactly where you are, plus a back button to the page above."""
+    out = [f'<a href="{up}">{esc(loc["title"])}</a>']
+    for k, (label, href) in enumerate(parts):
+        last = k == len(parts) - 1
+        out.append('<i>›</i>' + (f'<b class="mono">{label}</b>' if last else f'<a href="{href}">{label}</a>' if href else f'<span>{label}</span>'))
+    return f'<nav class="nav">{"".join(out)}</nav>'
+
+
+def back(href, label):
+    return f'<a class="back" href="{href}">← {label}</a>'
+
+
+def acard(loc, it, up):
+    """One asset: photo, AM number, description, make/model, calibration, in transit."""
+    mm = " · ".join(x for x in (it.get("make"), it.get("model")) if x)
+    linked = loc.get("asset_register") and it["ref"]
+    tag, href = ("a", f' href="{up}asset/{esc(it["ref"])}/"') if linked else ("article", "")
+    cs = cal_status(it.get("_reg"))
+    tr = it.get("transit")
+    trp = f'<div class="trp">In transit → {esc(tr.get("to") or "?")} · not signed yet</div>' if tr else ""
+    return (f'<{tag} class="acard{" transit" if tr else ""}"{href} data-asset="{esc(it["ref"])}">{photo(loc, it, "pic")}'
+            f'<div class="am mono">{esc(it["ref"] or "-")}</div><div class="nm">{esc(it["description"])}</div>'
+            f'{f"<div class=mk>{esc(mm)}</div>" if mm else ""}{cal_badge(cs) if cs else ""}{metrics(it)}'
+            f'{trp}</{tag}>')
+
+
 def shelf_body(loc, b, s, slots):
     # bay labels printed before 13/11/2026 point at <shelf>/#p<bay>: forward them to the bay page
-    body = ['<script>(function(){var m=/^#p([0-9]+)$/.exec(location.hash);if(m)location.replace(location.pathname.replace(/\\/(index\\.html)?$/,"")+"-"+m[1]+"/")})()</script>',
-            f'<p class="crumb mono"><a href="../">‹ {esc(loc["title"])}</a></p>',
-            f'<div class="sec"><h2 class="mono">01 / Bays on this shelf</h2><span class="mono">{loc["unit_word"]} {b} · Shelf {s}</span></div>',
-            f'<div class="strip" style="--p:{len(slots)}">']
-    for p, its in slots.items():
-        body.append(f'<a class="mono{"" if its else " empty"}" href="../{bay_slug(b, s, p)}/">{b}.{s}.{p}</a>')
-    body.append('</div>')
     count = sum(len(v) for v in slots.values())
-    body.append(f'<div class="sec"><h2 class="mono">02 / What belongs here</h2><span class="mono">{count} items</span></div><div class="cards">')
+    body = ['<script>(function(){var m=/^#p([0-9]+)$/.exec(location.hash);if(m)location.replace(location.pathname.replace(/\\/(index\\.html)?$/,"")+"-"+m[1]+"/")})()</script>',
+            nav(loc, "../", [(f'{loc["unit_word"]} {b}', None), (f"Shelf {b}.{s}", None)]),
+            back("../", esc(loc["title"])),
+            f'<div class="ttl"><div class="k">Shelf</div><div class="big mono">{b}.{s}</div>'
+            f'<div class="meta">{loc["unit_word"]} {b} · {count} {"asset" if count == 1 else "assets"} in {len(slots)} bays</div></div>',
+            '<div class="rowhint">Left to right, as on the shelf · tap a bay number to open it</div>',
+            f'<div class="bayrow" style="--p:{len(slots)}">']
     for p, its in slots.items():
-        code = f"{b}.{s}.{p}"
-        if not its:
-            body.append(f'<div class="card free" id="p{p}" data-p="{p}"><span class="code mono">{code}</span>&nbsp; Free slot</div>')
-        for k, it in enumerate(its):
-            mm = " ".join(x for x in (it.get("make"), it.get("model")) if x)
-            linked = loc.get("asset_register") and it["ref"]
-            tag, href = ("a", f' href="../asset/{esc(it["ref"])}/"') if linked else ("article", "")
-            body.append(f'<{tag} class="card plain{" transit" if it.get("transit") else ""}"{href}{f" id=p{p}" if k == 0 else ""} data-p="{p}">{photo(loc, it)}<div>'
-                        f'<div class="code mono">{code}</div><div class="ref mono">{esc(loc["ref_label"])}: {esc(it["ref"] or "-")}</div>'
-                        f'<div class="desc">{esc(it["description"])}</div>'
-                        f'{f"<div class=mm>{esc(mm)}</div>" if mm else ""}{metrics(it)}'
-                        f'{transit_note(it.get("transit"))}'
-                        f'{"<div class=more>Specifications &amp; calibration ›</div>" if linked else ""}</div></{tag}>')
+        body.append(f'<section class="bcol" id="p{p}"><a class="bhd" href="../{bay_slug(b, s, p)}/"><span class="mono">{b}.{s}.{p}</span><small>›</small></a>')
+        body.append(f'<div class="acards">{"".join(acard(loc, it, "../") for it in its)}</div>' if its else '<div class="bfree">Free slot</div>')
+        body.append('</section>')
     body.append('</div>')
     body.append(shelf_panel(loc, b, s, slots))
     return "".join(body)
-
-
-def asset_card(loc, it, code, up):
-    """One asset as a card (shelf and bay pages); opens its asset page."""
-    mm = " ".join(x for x in (it.get("make"), it.get("model")) if x)
-    linked = loc.get("asset_register") and it["ref"]
-    tag, href = ("a", f' href="{up}asset/{esc(it["ref"])}/"') if linked else ("article", "")
-    return (f'<{tag} class="card plain{" transit" if it.get("transit") else ""}"{href} data-asset="{esc(it["ref"])}">{photo(loc, it)}<div>'
-            f'<div class="code mono">{code}</div><div class="ref mono">{esc(loc["ref_label"])}: {esc(it["ref"] or "-")}</div>'
-            f'<div class="desc">{esc(it["description"])}</div>'
-            f'{f"<div class=mm>{esc(mm)}</div>" if mm else ""}{metrics(it)}'
-            f'{transit_note(it.get("transit"))}'
-            f'{"<div class=more>Specifications &amp; calibration ›</div>" if linked else ""}</div></{tag}>')
 
 
 # Hugo 13/11/2026: a bay can hold several assets; scanning the bay label shows all of them.
@@ -476,18 +506,19 @@ BAY_JS = """
 var RAW='https://raw.githubusercontent.com/workshopsofraco/workshopsofraco.github.io/main/data/images/';
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function tr(a){return a.transitTo||(a.transit&&(a.transit.to||'?'))||''}
-function card(a){var A=a.AssetNumber,d=a.desc||[a.Make,a.Model,a.Desc2].filter(Boolean).join(' '),t=tr(a);
-  return '<a class="card plain'+(t?' transit':'')+'" href="../asset/'+esc(A)+'/" data-asset="'+esc(A)+'"><div class="ph"><img alt="'+esc(A)+'" src="../img/'+esc(A)+'_OEM.webp" '+
-    'onerror="if(!this.dataset.n){this.dataset.n=1;this.src=\\''+RAW+esc(A)+'_OEM.webp\\'}else if(this.dataset.n==1){this.dataset.n=2;this.src=\\''+RAW+esc(A)+'_OEM.png\\'}else this.remove()"></div><div>'+
-    '<div class="code mono">'+esc(code)+'</div><div class="ref mono">Asset No: '+esc(A)+'</div><div class="desc">'+esc(d)+'</div>'+
-    (t?'<div class="tr">In transit → '+esc(t)+' · not signed yet</div>':'')+'<div class="more">Specifications &amp; calibration ›</div></div></a>'}
+function badge(cs){if(!cs)return '';var k={'Calibrated':'ok','Out of Calibration':'bad'}[cs]||'';return '<span class="badge '+k+'">'+esc(cs==='Not Required'?'No Cal Required':cs)+'</span>'}
+function card(a){var A=a.AssetNumber,d=a.desc||[a.Make,a.Model,a.Desc2].filter(Boolean).join(' '),t=tr(a),mk=[a.Make,a.Model].filter(Boolean).join(' · ');
+  return '<a class="acard'+(t?' transit':'')+'" href="../asset/'+esc(A)+'/" data-asset="'+esc(A)+'"><div class="pic"><img alt="'+esc(A)+'" src="../img/'+esc(A)+'_OEM.webp" '+
+    'onerror="if(!this.dataset.n){this.dataset.n=1;this.src=\\''+RAW+esc(A)+'_OEM.webp\\'}else if(this.dataset.n==1){this.dataset.n=2;this.src=\\''+RAW+esc(A)+'_OEM.png\\'}else this.remove()"></div>'+
+    '<div class="am mono">'+esc(A)+'</div><div class="nm">'+esc(d)+'</div>'+(mk?'<div class="mk">'+esc(mk)+'</div>':'')+badge(a.CalibrationStatus)+
+    (t?'<div class="trp">In transit → '+esc(t)+' · not signed yet</div>':'')+'</a>'}
 SL.ready.then(function(ok){if(!ok)return;SL.post({action:'layout',location:SL.location}).then(function(r){
   if(!r||!r.ok||!r.assets)return;var mine=r.assets.filter(function(a){return a.StorageBay===code});
   var have=[].map.call(box.querySelectorAll('[data-asset]'),function(e){return e.dataset.asset}).sort().join(),
       now=mine.map(function(a){return a.AssetNumber}).sort().join();
-  if(have!==now){box.innerHTML=mine.length?mine.map(card).join(''):'<div class="card free">Nothing is stored in this bay.</div>'}
-  else mine.forEach(function(a){var c=box.querySelector('[data-asset="'+a.AssetNumber+'"]');if(!c)return;var t=tr(a),o=c.querySelector('.tr');
-    c.classList.toggle('transit',!!t);if(o)o.remove();if(t){var n=document.createElement('div');n.className='tr';n.textContent='In transit → '+t+' · not signed yet';c.querySelector('.desc').after(n)}});
+  if(have!==now){box.innerHTML=mine.length?mine.map(card).join(''):'<div class="empty-bay">Free slot · nothing is stored in this bay</div>'}
+  else mine.forEach(function(a){var c=box.querySelector('[data-asset="'+a.AssetNumber+'"]');if(!c)return;var t=tr(a),o=c.querySelector('.trp');
+    c.classList.toggle('transit',!!t);if(o)o.remove();if(t){var n=document.createElement('div');n.className='trp';n.textContent='In transit → '+t+' · not signed yet';c.appendChild(n)}});
   if(cnt)cnt.textContent=mine.length+(mine.length===1?' asset':' assets')}).catch(function(){})})})();
 """
 
@@ -495,17 +526,17 @@ SL.ready.then(function(ok){if(!ok)return;SL.post({action:'layout',location:SL.lo
 def bay_body(loc, b, s, p, slots):
     its = slots.get(p, [])
     code = f"{b}.{s}.{p}"
-    body = [f'<p class="crumb mono"><a href="../">‹ {esc(loc["title"])}</a> › '
-            f'<a href="../{shelf_slug(b, s)}/">{loc["unit_word"]} {b} · Shelf {b}.{s}</a></p>',
-            f'<div class="sec"><h2 class="mono">01 / Bay {code}</h2><span class="mono" id="baycount">{len(its)} {"asset" if len(its) == 1 else "assets"}</span></div>',
-            f'<div class="cards" id="baylist" data-bay="{code}">']
-    body += [asset_card(loc, it, code, "../") for it in its] or ['<div class="card free">Nothing is stored in this bay.</div>']
-    body.append('</div>')
-    body.append(f'<div class="sec"><h2 class="mono">02 / Other bays on shelf {b}.{s}</h2></div><div class="strip" style="--p:{len(slots)}">')
+    body = [nav(loc, "../", [(f'{loc["unit_word"]} {b}', None), (f"Shelf {b}.{s}", f"../{shelf_slug(b, s)}/"), (f"Bay {code}", None)]),
+            back(f"../{shelf_slug(b, s)}/", f"Shelf {b}.{s}"),
+            f'<div class="ttl"><div class="k">Bay</div><div class="big mono">{code}</div>'
+            f'<div class="meta">{loc["unit_word"]} {b} · Shelf {b}.{s} · <span id="baycount">{len(its)} {"asset" if len(its) == 1 else "assets"}</span></div></div>',
+            f'<div class="rowhint">Bays on shelf {b}.{s}, left to right</div><div class="baysel" style="--p:{len(slots)}">']
     for q, qi in slots.items():
         cls = "here" if q == p else ("" if qi else "empty")
         body.append(f'<a class="mono {cls}" href="../{bay_slug(b, s, q)}/">{b}.{s}.{q}</a>')
-    body.append(f'</div><a class="btn alt" href="../{shelf_slug(b, s)}/">Whole shelf {b}.{s}</a>')
+    body.append(f'</div><div class="acards" id="baylist" data-bay="{code}">')
+    body += [acard(loc, it, "../") for it in its] or ['<div class="empty-bay">Free slot · nothing is stored in this bay</div>']
+    body.append('</div>')
     if live(loc) and loc.get("asset_register"):
         body.append(f'<script>{BAY_JS}</script>')
     return "".join(body)
@@ -1016,7 +1047,8 @@ def asset_body(loc, it, reg, all_bays):
                 f'<a class="btn alt" target="_blank" rel="noopener" href="{esc(folder["Url"])}">Manuals, datasheets &amp; all certificates</a>'
                 f'<div class="hint">Asset folder in SharePoint · opens with your Sofraco sign-in</div>')
     missing = "" if reg else '<div class="note">This asset number was not found in the Asset Register.</div>'
-    return (f'<p class="crumb mono"><a href="../../">‹ {esc(loc["title"])}</a> › <a href="../../{b}-{s}/">{loc["unit_word"]} {b} · Shelf {b}.{s}</a> › <a href="../../{b}-{s}-{p}/">Bay {b}.{s}.{p}</a></p>'
+    return (nav(loc, "../../", [(f'{loc["unit_word"]} {b}', None), (f"Shelf {b}.{s}", f"../../{b}-{s}/"), (f"Bay {b}.{s}.{p}", f"../../{b}-{s}-{p}/"), (esc(it["ref"]), None)]) +
+            back(f"../../{b}-{s}-{p}/", f"Bay {b}.{s}.{p}") +
             f'<div class="hero">{photo(loc, it)}<div><a class="code mono plain" href="../../{b}-{s}-{p}/">{esc(it["bin_location"])}</a>'
             f'<div class="ref mono">{esc(it["ref"])}</div><div class="desc">{esc(it["description"])}</div></div></div>'
             f'{transit_banner(it.get("transit"))}'
