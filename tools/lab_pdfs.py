@@ -501,6 +501,54 @@ def shelf_stickers(qr):
     return STICKER_PDF
 
 
+# ------------------------- small bay labels, Avery L7651 (38.1 x 21.2 mm, 65 per A4)
+SMALL_BAY_PDF = os.path.normpath(os.path.join(
+    OUT_DIR, "lab_equipment_storage_bay_labels_L7651.pdf"))
+S_W, S_H = 38.1 * mm, 21.2 * mm
+S_LEFT, S_TOP, S_HGAP = 5.75 * mm, 10.7 * mm, 2.0 * mm
+
+
+def draw_small_bay(c, x, y, bay, url):
+    b, s, p_ = bay.split(".")
+    c.saveState()
+    pth = c.beginPath()
+    pth.rect(x, y, S_W, S_H)
+    c.clipPath(pth, stroke=0)
+    pad = 2 * mm
+    q = S_H - 2 * pad
+    draw_qr(c, url, x + pad, y + pad, q)
+    tx = x + pad + q + 1.8 * mm
+    top = y + S_H - pad
+    draw_logo(c, tx, top - 2 * mm, 2 * mm)
+    c.setFillColor(TECHNOLOGY_BLUE)
+    c.setFont("Helvetica-Bold", 13)
+    c.drawString(tx, top - 7.6 * mm, bay)
+    c.setFillColor(DEEP_SEA_BLUE)
+    c.setFont("Helvetica-Bold", 5.6)
+    for i, line in enumerate((f"CABINET {b}", f"SHELF {s}", f"BAY {p_}")):
+        c.drawString(tx, top - 10.6 * mm - i * 2.3 * mm, line)
+    c.restoreState()
+
+
+def small_bay_labels(qr):
+    bays = qr.get("bays", {})
+    if not bays:
+        return None
+    keys = sorted(bays, key=lambda k: tuple(int(v) for v in k.split(".")))
+    W, H = A4
+    c = canvas.Canvas(SMALL_BAY_PDF, pagesize=A4)
+    c.setTitle("Lab Equipment Storage bay labels (small)")
+    for i, k in enumerate(keys):
+        slot = i % 65
+        if i and slot == 0:
+            c.showPage()
+        row, col = divmod(slot, 5)
+        draw_small_bay(c, S_LEFT + col * (S_W + S_HGAP), H - S_TOP - (row + 1) * S_H, k, bays[k])
+    c.save()
+    print("small bay labels ->", SMALL_BAY_PDF)
+    return SMALL_BAY_PDF
+
+
 # ------------------------------------------------ asset tags (Avery L7073)
 # QR = the asset's storage-layouts page (specs, cal cert, "Send it on" into
 # EDT); Code 128 = the plain AM##### that every printed tag already carries.
@@ -666,6 +714,7 @@ def main():
     register_page(c, items)
     c.save()
     shelf_stickers(load_qr())
+    small_bay_labels(load_qr())
     asset_tags(items, load_qr())
     missing =[it["bin_location"] + " " + it["description"] for it in items
                if it["description"] and not cutout_path(it["image"])]

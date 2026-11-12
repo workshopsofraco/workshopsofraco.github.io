@@ -1069,6 +1069,7 @@ def build():
 # ------------------------------------------------------------ printable PDFs
 PDF_FILES = [("A3 layout", "lab_equipment_storage_a3.pdf"),
              ("Bay labels (Avery L7073, 14 per A4)", "lab_equipment_storage_bay_labels_L7073.pdf"),
+             ("Bay labels small (Avery L7651, 65 per A4)", "lab_equipment_storage_bay_labels_L7651.pdf"),
              ("Asset tags (Avery L7073)", "lab_equipment_storage_asset_tags_L7073.pdf"),
              ("Asset tags (A3, cut by hand)", "lab_equipment_storage_asset_tags_A3.pdf")]
 
