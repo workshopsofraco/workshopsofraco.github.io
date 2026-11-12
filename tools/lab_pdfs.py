@@ -592,6 +592,17 @@ def draw_asset_tag(c, x, y, it, reg, url, border=False, w=None, h=None):
     c.setFillColor(TECHNOLOGY_BLUE)
     c.setFont("Helvetica-Bold", 10)
     c.drawString(tx, top - 8.4 * mm, it["bin_location"])
+    # Hugo 13/11/2026: Indication Only instruments say so on the tag (AM-R055 CalibrationStatus)
+    if ((reg or {}).get("CalibrationStatus") or "").strip().lower() == "indication only":
+        bx = tx + c.stringWidth(it["bin_location"], "Helvetica-Bold", 10) + 2.5 * mm
+        label = "INDICATION ONLY"
+        bw, bh = c.stringWidth(label, "Helvetica-Bold", 6.2) + 3 * mm, 3.6 * mm
+        by = top - 8.4 * mm - 0.9 * mm
+        c.setFillColor(DEEP_SEA_BLUE)
+        c.roundRect(bx, by, bw, bh, bh / 2, fill=1, stroke=0)
+        c.setFillColor(HexColor("#FFFFFF"))
+        c.setFont("Helvetica-Bold", 6.2)
+        c.drawCentredString(bx + bw / 2, by + (bh - 6.2 * 0.7) / 2, label)
 
     c.setFillColor(DEEP_SEA_BLUE)
     c.setFont("Helvetica-Bold", 14)
