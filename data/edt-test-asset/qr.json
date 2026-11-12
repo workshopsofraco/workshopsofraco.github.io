@@ -2,5 +2,8 @@
   "cabinet": "https://workshopsofraco.github.io/edt-test-asset/",
   "shelves": {
     "1.1": "https://workshopsofraco.github.io/edt-test-asset/1-1/"
+  },
+  "bays": {
+    "1.1.1": "https://workshopsofraco.github.io/edt-test-asset/1-1/#p1"
   }
 }

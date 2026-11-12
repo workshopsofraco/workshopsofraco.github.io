@@ -274,7 +274,7 @@ a.btn.alt,button.btn.alt{background:#fff;color:var(--deep);border:1.5px solid va
 .slot .mini .ref{font-size:11px;margin-top:4px}
 .mini.transit,.card.transit{background:#FFF4E5;box-shadow:0 0 0 2px #F59E0B,var(--sh)}
 .tr{font-size:10.5px;font-weight:800;color:#B45309;margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
-.card .tr{font-size:12px}
+.card .tr{font-size:12px}.card.hl{box-shadow:0 0 0 3px var(--blue),var(--sh)}
 .note.transit{background:#FFF4E5;border-color:#F59E0B;color:#7C2D12;margin-top:12px}
 .mv .gate .btn{margin-top:0}.ed{display:none}
 body.editing .ed{display:inline-block}
@@ -433,12 +433,12 @@ def shelf_body(loc, b, s, slots):
     for p, its in slots.items():
         code = f"{b}.{s}.{p}"
         if not its:
-            body.append(f'<div class="card free" id="p{p}"><span class="code mono">{code}</span>&nbsp; Free slot</div>')
+            body.append(f'<div class="card free" id="p{p}" data-p="{p}"><span class="code mono">{code}</span>&nbsp; Free slot</div>')
         for k, it in enumerate(its):
             mm = " ".join(x for x in (it.get("make"), it.get("model")) if x)
             linked = loc.get("asset_register") and it["ref"]
             tag, href = ("a", f' href="../asset/{esc(it["ref"])}/"') if linked else ("article", "")
-            body.append(f'<{tag} class="card plain{" transit" if it.get("transit") else ""}"{href}{f" id=p{p}" if k == 0 else ""}>{photo(loc, it)}<div>'
+            body.append(f'<{tag} class="card plain{" transit" if it.get("transit") else ""}"{href}{f" id=p{p}" if k == 0 else ""} data-p="{p}">{photo(loc, it)}<div>'
                         f'<div class="code mono">{code}</div><div class="ref mono">{esc(loc["ref_label"])}: {esc(it["ref"] or "-")}</div>'
                         f'<div class="desc">{esc(it["description"])}</div>'
                         f'{f"<div class=mm>{esc(mm)}</div>" if mm else ""}{metrics(it)}'
@@ -510,6 +510,8 @@ function whenDom(f){if(document.readyState!=='loading')f();else document.addEven
 whenDom(function(){var gb=document.getElementById('gatebtn');if(gb)gb.onclick=function(){gb.disabled=true;signIn()};
   ready.then(function(ok){var g=document.getElementById('gated'),s=document.getElementById('gatescreen');
     if(g)g.hidden=!ok;if(s)s.hidden=ok;
+    var m=ok&&/^#p(\d+)$/.exec(location.hash);if(m){var hs=document.querySelectorAll('.card[data-p="'+m[1]+'"]');
+      [].forEach.call(hs,function(e){e.classList.add('hl')});if(hs[0])setTimeout(function(){hs[0].scrollIntoView({block:'start'})},50)}
     [].forEach.call(document.querySelectorAll('[data-editor-only]'),function(e){e.hidden=!(ok&&isEditor())})})});
 // Hugo 06/11/2026: pick from a dropdown; a box to type in appears only for "Other..."
 function pick(selId){var s=document.getElementById(selId),o=document.getElementById(selId+'x');
@@ -1003,7 +1005,7 @@ def build():
         with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as f:
             f.write(page(loc["title"], loc["title"], loc["subtitle"],
                          gated(loc, cabinet_body(loc, tree, unplaced, items) + downloads_html(loc)), 1, updated))
-        qr = {"cabinet": url_for(base, loc), "shelves": {}}
+        qr = {"cabinet": url_for(base, loc), "shelves": {}, "bays": {}}
         qdir = ldir(loc, "qr")
         if os.path.isdir(qdir):
             shutil.rmtree(qdir, ignore_errors=True)
@@ -1019,6 +1021,9 @@ def build():
                                  2, updated).replace('src="img/', 'src="../img/'))
                 qr["shelves"][shelf_key(b, s)] = url_for(base, loc, b, s)
                 make_qr(qr["shelves"][shelf_key(b, s)], os.path.join(qdir, f"shelf-{shelf_slug(b, s)}.png"))
+                for p in slots:  # bay labels (Hugo 13/11/2026: C.S.P on every bay) open that bay on the shelf page
+                    qr["bays"][f"{b}.{s}.{p}"] = f'{qr["shelves"][shelf_key(b, s)]}#p{p}'
+                    make_qr(qr["bays"][f"{b}.{s}.{p}"], os.path.join(qdir, f"bay-{b}-{s}-{p}.png"))
         if loc.get("asset_register"):
             all_bays = sorted({i["bin_location"] for i in items if i.get("bin_location")}, key=bay_key)
             with open(ldir(loc, "asset_links.csv"), "w", newline="", encoding="utf-8") as f:
@@ -1063,7 +1068,7 @@ def build():
 
 # ------------------------------------------------------------ printable PDFs
 PDF_FILES = [("A3 layout", "lab_equipment_storage_a3.pdf"),
-             ("Shelf stickers (Avery L7073)", "lab_equipment_storage_shelf_stickers_L7073.pdf"),
+             ("Bay labels (Avery L7073, 14 per A4)", "lab_equipment_storage_bay_labels_L7073.pdf"),
              ("Asset tags (Avery L7073)", "lab_equipment_storage_asset_tags_L7073.pdf"),
              ("Asset tags (A3, cut by hand)", "lab_equipment_storage_asset_tags_A3.pdf")]
 
@@ -1278,7 +1283,8 @@ def check():
         qr = json.load(open(ws(loc["qr_json"]), encoding="utf-8"))
         qdir = ldir(loc, "qr")
         pairs = [("cabinet.png", qr["cabinet"], loc["title"])] + \
-            [(f"shelf-{k.replace('.', '-')}.png", u, f"Shelf {k}") for k, u in qr["shelves"].items()]
+            [(f"shelf-{k.replace('.', '-')}.png", u, f"Shelf {k}") for k, u in qr["shelves"].items()] + \
+            [(f"bay-{k.replace('.', '-')}.png", u, f'id=p{k.split(".")[2]}') for k, u in qr.get("bays", {}).items()]
         for png, url, must in pairs:
             n += 1
             img = cv2.imread(os.path.join(qdir, png))
@@ -1286,7 +1292,7 @@ def check():
             if not text:  # the classic detector misses some valid codes
                 text, _, _ = cv2.QRCodeDetectorAruco().detectAndDecode(img)
             r = requests.get(url, timeout=30)
-            ok = text == url and r.status_code == 200 and esc(must) in r.text
+            ok = text == url and r.status_code == 200 and (esc(must) in r.text or must.replace("id=", 'id="') + '"' in r.text)
             if not ok:
                 bad.append(f"{loc['slug']}/{png}: qr={text!r} http={r.status_code}")
     print(f"checked {n} QR codes / pages, {len(bad)} problems")

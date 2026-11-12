@@ -444,16 +444,17 @@ def register_page(c, items):
         c.line(cx, t_bottom, cx, table_top)
 
 
-# --------------------------------------------- shelf stickers (Avery L7073)
+# ------------------------------------- bay labels (99.1 x 38.1 mm, 14 per A4)
+# One per bay, C.S.P = cabinet.shelf.bay (Hugo 13/11/2026); the QR opens that bay on its shelf page.
 STICKER_PDF = os.path.normpath(os.path.join(
-    OUT_DIR, "lab_equipment_storage_shelf_stickers_L7073.pdf"))
+    OUT_DIR, "lab_equipment_storage_bay_labels_L7073.pdf"))
 LABEL_W, LABEL_H = 99.1 * mm, 38.1 * mm
 L_LEFT, L_TOP, L_HGAP = 4.65 * mm, 15.15 * mm, 2.5 * mm
 X_OFFSET, Y_OFFSET = -0.5 * mm, 1 * mm
 
 
-def draw_sticker(c, x, y, shelf, url):
-    b, s = shelf.split(".")
+def draw_sticker(c, x, y, bay, url):
+    b, s, p_ = bay.split(".")
     c.saveState()
     p = c.beginPath()
     p.rect(x, y, LABEL_W, LABEL_H)
@@ -468,25 +469,25 @@ def draw_sticker(c, x, y, shelf, url):
     cy = y + LABEL_H / 2
     c.setFillColor(TECHNOLOGY_BLUE)
     c.setFont("Helvetica-Bold", 30)
-    c.drawString(tx, cy + 1.5 * mm, shelf)
+    c.drawString(tx, cy + 1.5 * mm, bay)
     c.setFillColor(DEEP_SEA_BLUE)
     c.setFont("Helvetica-Bold", 10)
-    c.drawString(tx, cy - 4.2 * mm - 10 * 0.35, f"CABINET {b}  ·  SHELF {s}")
+    c.drawString(tx, cy - 4.2 * mm - 10 * 0.35, f"CABINET {b}  ·  SHELF {s}  ·  BAY {p_}")
     c.setFillColor(STEEL_GREY)
     c.setFont("Helvetica", 7)
-    c.drawString(tx, cy - 9.6 * mm - 7 * 0.35, "Lab Equipment Storage  -  scan for this shelf")
+    c.drawString(tx, cy - 9.6 * mm - 7 * 0.35, "Lab Equipment Storage  -  scan for this bay")
     draw_logo(c, tx, y + LABEL_H - pad - 3.6 * mm, 3.6 * mm)
     c.restoreState()
 
 
 def shelf_stickers(qr):
-    shelves = qr.get("shelves", {})
+    shelves = qr.get("bays", {})
     if not shelves:
         return None
     keys = sorted(shelves, key=lambda k: tuple(int(v) for v in k.split(".")))
     W, H = A4
     c = canvas.Canvas(STICKER_PDF, pagesize=A4)
-    c.setTitle("Lab Equipment Storage shelf stickers")
+    c.setTitle("Lab Equipment Storage bay labels")
     for i, k in enumerate(keys):
         slot = i % 14
         if i and slot == 0:
@@ -496,7 +497,7 @@ def shelf_stickers(qr):
         py = H - L_TOP - (row + 1) * LABEL_H + Y_OFFSET
         draw_sticker(c, px, py, k, shelves[k])
     c.save()
-    print("stickers ->", STICKER_PDF)
+    print("bay labels ->", STICKER_PDF)
     return STICKER_PDF
 
 
