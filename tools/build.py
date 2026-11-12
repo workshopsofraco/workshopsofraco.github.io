@@ -510,7 +510,7 @@ function whenDom(f){if(document.readyState!=='loading')f();else document.addEven
 whenDom(function(){var gb=document.getElementById('gatebtn');if(gb)gb.onclick=function(){gb.disabled=true;signIn()};
   ready.then(function(ok){var g=document.getElementById('gated'),s=document.getElementById('gatescreen');
     if(g)g.hidden=!ok;if(s)s.hidden=ok;
-    var m=ok&&/^#p(\d+)$/.exec(location.hash);if(m){var hs=document.querySelectorAll('.card[data-p="'+m[1]+'"]');
+    var m=ok&&/^#p([0-9]+)$/.exec(location.hash);if(m){var hs=document.querySelectorAll('.card[data-p="'+m[1]+'"]');
       [].forEach.call(hs,function(e){e.classList.add('hl')});if(hs[0])setTimeout(function(){hs[0].scrollIntoView({block:'start'})},50)}
     [].forEach.call(document.querySelectorAll('[data-editor-only]'),function(e){e.hidden=!(ok&&isEditor())})})});
 // Hugo 06/11/2026: pick from a dropdown; a box to type in appears only for "Other..."
