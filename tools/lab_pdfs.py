@@ -457,10 +457,7 @@ def draw_sticker(c, x, y, shelf, url):
     c.saveState()
     p = c.beginPath()
     p.rect(x, y, LABEL_W, LABEL_H)
-    c.clipPath(p, stroke=0)
-    c.setStrokeColor(HexColor("#D8DEE6"))
-    c.setLineWidth(0.5)
-    c.rect(x + 0.6 * mm, y + 0.6 * mm, LABEL_W - 1.2 * mm, LABEL_H - 1.2 * mm, fill=0, stroke=1)
+    c.clipPath(p, stroke=0)   # no outline: die-cut edges never line up with a printed one (Hugo 13/11/2026)
 
     pad = 3.5 * mm
     q = LABEL_H - 2 * pad
@@ -513,7 +510,7 @@ ASSET_LINKS = os.path.join(DATA_DIR, "asset_links.csv")   # page URL per AM, fro
 LAYOUT = os.path.join(DATA_DIR, "layout.json")            # register fields per AM (serials)
 
 
-def draw_asset_tag(c, x, y, it, reg, url, border=True, w=None, h=None):
+def draw_asset_tag(c, x, y, it, reg, url, border=False, w=None, h=None):
     w, h = w or LABEL_W, h or LABEL_H
     from reportlab.graphics.barcode import code128
     am = it["register_no"]
