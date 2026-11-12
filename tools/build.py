@@ -216,7 +216,14 @@ main{max-width:1180px;margin:0 auto;padding:18px 16px 40px}
 @media(min-width:900px){.bins{grid-template-columns:repeat(var(--n),1fr)}}
 .bin{border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 4px rgba(5,18,51,.06),0 8px 24px rgba(5,18,51,.10)}
 .binhd{background:var(--deep);color:#fff;font-weight:700;letter-spacing:.12em;padding:8px 12px;text-transform:uppercase;font-size:13px}
-.shelf{padding:10px}.shelf+.shelf{border-top:1px solid #E8EEF6}
+.bin{background:#F5F8FC}.slot a.code{color:var(--blue)}.shelf{padding:10px;margin:10px;background:#fff;border-radius:12px;box-shadow:var(--sh)}
+/* Hugo 13/11/2026: shelves, bays and assets lift a little under the pointer, like buttons */
+.shelf,.slot,.mini,.acard,.bhd,.baysel a,.back,.idx a,a.card{transition:transform .15s ease,box-shadow .15s ease}
+@media(hover:hover){body:not(.editing) .shelf:hover{box-shadow:0 6px 18px rgba(5,18,51,.14)}
+body:not(.editing) .slot:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(5,18,51,.10)}
+body:not(.editing) .mini:hover,.acard:hover,a.card:hover,.idx a:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(5,18,51,.18)}
+.bhd:hover,.baysel a:hover,.back:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(5,18,51,.14)}}
+body:not(.editing) .mini:active,.acard:active,a.card:active,.bhd:active,.baysel a:active,.back:active{transform:scale(.97)}
 .shelf>a.sh{display:flex;justify-content:space-between;align-items:center;text-decoration:none;color:var(--deep);font-weight:700;font-size:13px;margin:0 2px 6px}
 .shelf>a.sh small{color:var(--blue);font-weight:600}
 .slots{display:grid;grid-template-columns:repeat(var(--p),minmax(0,1fr));gap:6px}
