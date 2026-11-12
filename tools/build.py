@@ -132,9 +132,15 @@ def shelf_slug(b, s):
     return f"{b}-{s}"
 
 
-def url_for(base, loc, b=None, s=None):
+def bay_slug(b, s, p):
+    return f"{b}-{s}-{p}"
+
+
+def url_for(base, loc, b=None, s=None, p=None):
     u = base + loc["slug"] + "/"
-    return u if b is None else u + shelf_slug(b, s) + "/"
+    if b is None:
+        return u
+    return u + (shelf_slug(b, s) if p is None else bay_slug(b, s, p)) + "/"
 
 
 # ---------------------------------------------------------------- images
@@ -227,7 +233,7 @@ main{max-width:1180px;margin:0 auto;padding:18px 16px 40px}
 /* shelf page */
 .strip{display:grid;grid-template-columns:repeat(var(--p),1fr);gap:6px;border-radius:12px;padding:8px;background:var(--panel)}
 .strip a{display:block;text-align:center;padding:10px 0;border-radius:8px;box-shadow:var(--sh);background:#fff;color:var(--deep);text-decoration:none;font-weight:800}
-.strip a.empty{box-shadow:none;background:transparent;color:var(--grey)}
+#baylist .code{display:none}.hero a.code{display:block}.strip a.here{background:var(--deep);color:#fff}.strip a.empty{box-shadow:none;background:transparent;color:var(--grey)}
 .cards{display:grid;gap:12px}
 @media(min-width:700px){.cards{grid-template-columns:repeat(2,1fr)}}
 .card{border-radius:12px;background:#fff;box-shadow:var(--sh);padding:14px;display:flex;gap:14px;align-items:center;scroll-margin-top:70px}
@@ -394,7 +400,7 @@ def mini_card(loc, it, b, s, p):
 def slot_cell(loc, b, s, p, its):
     """Hugo 05/11/2026: each asset in a bay is its own card with its photo."""
     code = f"{b}.{s}.{p}"
-    head = (f'<div class="code mono">{code}</div><button class="ed addhere" type="button" title="Add an asset to {code}">+ asset</button>'
+    head = (f'<a class="code mono plain" href="{bay_slug(b, s, p)}/">{code}</a><button class="ed addhere" type="button" title="Add an asset to {code}">+ asset</button>'
             f'<button class="ed rmbay" type="button" title="Remove bay {code}">Remove bay</button>')
     if not its:
         return f'<div class="slot empty" data-bay="{code}">{head}<div class="free">Free slot</div></div>'
@@ -410,7 +416,7 @@ def register_table(loc, rows, link):
         locn = r.get("bin_location") or "-"
         if link and r.get("bin_location"):
             b, s, p = r["bin_location"].split(".")
-            locn = f'<a href="../{loc["slug"]}/{b}-{s}/#p{p}">{esc(locn)}</a>'
+            locn = f'<a href="{bay_slug(b, s, p)}/">{esc(locn)}</a>'
         last = esc(r.get("qty", "")) if extra_qty else esc(" ".join(x for x in (r.get("make"), r.get("model")) if x))
         ref = esc(r["ref"])
         if loc.get("asset_register") and r["ref"]:
@@ -423,10 +429,10 @@ def register_table(loc, rows, link):
 
 def shelf_body(loc, b, s, slots):
     body = [f'<p class="crumb mono"><a href="../">‹ {esc(loc["title"])}</a></p>',
-            f'<div class="sec"><h2 class="mono">01 / Shelf positions</h2><span class="mono">{loc["unit_word"]} {b} · Shelf {s}</span></div>',
+            f'<div class="sec"><h2 class="mono">01 / Bays on this shelf</h2><span class="mono">{loc["unit_word"]} {b} · Shelf {s}</span></div>',
             f'<div class="strip" style="--p:{len(slots)}">']
     for p, its in slots.items():
-        body.append(f'<a class="mono{"" if its else " empty"}" href="#p{p}">{b}.{s}.{p}</a>')
+        body.append(f'<a class="mono{"" if its else " empty"}" href="../{bay_slug(b, s, p)}/">{b}.{s}.{p}</a>')
     body.append('</div>')
     count = sum(len(v) for v in slots.values())
     body.append(f'<div class="sec"><h2 class="mono">02 / What belongs here</h2><span class="mono">{count} items</span></div><div class="cards">')
@@ -446,6 +452,60 @@ def shelf_body(loc, b, s, slots):
                         f'{"<div class=more>Specifications &amp; calibration ›</div>" if linked else ""}</div></{tag}>')
     body.append('</div>')
     body.append(shelf_panel(loc, b, s, slots))
+    return "".join(body)
+
+
+def asset_card(loc, it, code, up):
+    """One asset as a card (shelf and bay pages); opens its asset page."""
+    mm = " ".join(x for x in (it.get("make"), it.get("model")) if x)
+    linked = loc.get("asset_register") and it["ref"]
+    tag, href = ("a", f' href="{up}asset/{esc(it["ref"])}/"') if linked else ("article", "")
+    return (f'<{tag} class="card plain{" transit" if it.get("transit") else ""}"{href} data-asset="{esc(it["ref"])}">{photo(loc, it)}<div>'
+            f'<div class="code mono">{code}</div><div class="ref mono">{esc(loc["ref_label"])}: {esc(it["ref"] or "-")}</div>'
+            f'<div class="desc">{esc(it["description"])}</div>'
+            f'{f"<div class=mm>{esc(mm)}</div>" if mm else ""}{metrics(it)}'
+            f'{transit_note(it.get("transit"))}'
+            f'{"<div class=more>Specifications &amp; calibration ›</div>" if linked else ""}</div></{tag}>')
+
+
+# Hugo 13/11/2026: a bay can hold several assets; scanning the bay label shows all of them.
+BAY_JS = """
+(function(){var box=document.getElementById('baylist');if(!box||!window.SL)return;var code=box.dataset.bay,cnt=document.getElementById('baycount');
+var RAW='https://raw.githubusercontent.com/workshopsofraco/workshopsofraco.github.io/main/data/images/';
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function tr(a){return a.transitTo||(a.transit&&(a.transit.to||'?'))||''}
+function card(a){var A=a.AssetNumber,d=a.desc||[a.Make,a.Model,a.Desc2].filter(Boolean).join(' '),t=tr(a);
+  return '<a class="card plain'+(t?' transit':'')+'" href="../asset/'+esc(A)+'/" data-asset="'+esc(A)+'"><div class="ph"><img alt="'+esc(A)+'" src="../img/'+esc(A)+'_OEM.webp" '+
+    'onerror="if(!this.dataset.n){this.dataset.n=1;this.src=\\''+RAW+esc(A)+'_OEM.webp\\'}else if(this.dataset.n==1){this.dataset.n=2;this.src=\\''+RAW+esc(A)+'_OEM.png\\'}else this.remove()"></div><div>'+
+    '<div class="code mono">'+esc(code)+'</div><div class="ref mono">Asset No: '+esc(A)+'</div><div class="desc">'+esc(d)+'</div>'+
+    (t?'<div class="tr">In transit → '+esc(t)+' · not signed yet</div>':'')+'<div class="more">Specifications &amp; calibration ›</div></div></a>'}
+SL.ready.then(function(ok){if(!ok)return;SL.post({action:'layout',location:SL.location}).then(function(r){
+  if(!r||!r.ok||!r.assets)return;var mine=r.assets.filter(function(a){return a.StorageBay===code});
+  var have=[].map.call(box.querySelectorAll('[data-asset]'),function(e){return e.dataset.asset}).sort().join(),
+      now=mine.map(function(a){return a.AssetNumber}).sort().join();
+  if(have!==now){box.innerHTML=mine.length?mine.map(card).join(''):'<div class="card free">Nothing is stored in this bay.</div>'}
+  else mine.forEach(function(a){var c=box.querySelector('[data-asset="'+a.AssetNumber+'"]');if(!c)return;var t=tr(a),o=c.querySelector('.tr');
+    c.classList.toggle('transit',!!t);if(o)o.remove();if(t){var n=document.createElement('div');n.className='tr';n.textContent='In transit → '+t+' · not signed yet';c.querySelector('.desc').after(n)}});
+  if(cnt)cnt.textContent=mine.length+(mine.length===1?' asset':' assets')}).catch(function(){})})})();
+"""
+
+
+def bay_body(loc, b, s, p, slots):
+    its = slots.get(p, [])
+    code = f"{b}.{s}.{p}"
+    body = [f'<p class="crumb mono"><a href="../">‹ {esc(loc["title"])}</a> › '
+            f'<a href="../{shelf_slug(b, s)}/">{loc["unit_word"]} {b} · Shelf {b}.{s}</a></p>',
+            f'<div class="sec"><h2 class="mono">01 / Bay {code}</h2><span class="mono" id="baycount">{len(its)} {"asset" if len(its) == 1 else "assets"}</span></div>',
+            f'<div class="cards" id="baylist" data-bay="{code}">']
+    body += [asset_card(loc, it, code, "../") for it in its] or ['<div class="card free">Nothing is stored in this bay.</div>']
+    body.append('</div>')
+    body.append(f'<div class="sec"><h2 class="mono">02 / Other bays on shelf {b}.{s}</h2></div><div class="strip" style="--p:{len(slots)}">')
+    for q, qi in slots.items():
+        cls = "here" if q == p else ("" if qi else "empty")
+        body.append(f'<a class="mono {cls}" href="../{bay_slug(b, s, q)}/">{b}.{s}.{q}</a>')
+    body.append(f'</div><a class="btn alt" href="../{shelf_slug(b, s)}/">Whole shelf {b}.{s}</a>')
+    if live(loc) and loc.get("asset_register"):
+        body.append(f'<script>{BAY_JS}</script>')
     return "".join(body)
 
 
@@ -698,7 +758,7 @@ function fill(s){var f=s.querySelector('.free');if(f)f.remove();s.classList.remo
 function shelfOf(bay){var p=bay.split('.');return[].filter.call(root.querySelectorAll('.shelf'),function(sh){var n=(sh.dataset.next||'').split('.');return n[0]===p[0]&&n[1]===p[1]})[0]}
 function addBay(bay){if(slot(bay))return slot(bay);var sh=shelfOf(bay);if(!sh)return null;var p=bay.split('.');
   var ns=document.createElement('div');ns.className='slot empty';ns.dataset.bay=bay;
-  ns.innerHTML='<div class="code mono">'+bay+'</div><button class="ed addhere" type="button">+ asset</button><button class="ed rmbay" type="button">Remove bay</button><div class="free">Free slot</div>';
+  ns.innerHTML='<a class="code mono plain" href="'+bay.replace(/\\./g,'-')+'/">'+bay+'</a><button class="ed addhere" type="button">+ asset</button><button class="ed rmbay" type="button">Remove bay</button><div class="free">Free slot</div>';
   var row=sh.querySelector('.slots'),after=[].filter.call(row.children,function(c){return +c.dataset.bay.split('.')[2]<+p[2]}).pop();
   if(after)after.after(ns);else row.prepend(ns);row.style.setProperty('--p',row.children.length);
   var n=sh.dataset.next.split('.');if(+p[2]>=+n[2])sh.dataset.next=p[0]+'.'+p[1]+'.'+(+p[2]+1);return ns}
@@ -954,8 +1014,8 @@ def asset_body(loc, it, reg, all_bays):
                 f'<a class="btn alt" target="_blank" rel="noopener" href="{esc(folder["Url"])}">Manuals, datasheets &amp; all certificates</a>'
                 f'<div class="hint">Asset folder in SharePoint · opens with your Sofraco sign-in</div>')
     missing = "" if reg else '<div class="note">This asset number was not found in the Asset Register.</div>'
-    return (f'<p class="crumb mono"><a href="../../">‹ {esc(loc["title"])}</a> › <a href="../../{b}-{s}/">{loc["unit_word"]} {b} · Shelf {b}.{s}</a></p>'
-            f'<div class="hero">{photo(loc, it)}<div><div class="code mono">{esc(it["bin_location"])}</div>'
+    return (f'<p class="crumb mono"><a href="../../">‹ {esc(loc["title"])}</a> › <a href="../../{b}-{s}/">{loc["unit_word"]} {b} · Shelf {b}.{s}</a> › <a href="../../{b}-{s}-{p}/">Bay {b}.{s}.{p}</a></p>'
+            f'<div class="hero">{photo(loc, it)}<div><a class="code mono plain" href="../../{b}-{s}-{p}/">{esc(it["bin_location"])}</a>'
             f'<div class="ref mono">{esc(it["ref"])}</div><div class="desc">{esc(it["description"])}</div></div></div>'
             f'{transit_banner(it.get("transit"))}'
             f'{move_panel(loc, it["ref"]) if reg else ""}'
@@ -1021,8 +1081,14 @@ def build():
                                  2, updated).replace('src="img/', 'src="../img/'))
                 qr["shelves"][shelf_key(b, s)] = url_for(base, loc, b, s)
                 make_qr(qr["shelves"][shelf_key(b, s)], os.path.join(qdir, f"shelf-{shelf_slug(b, s)}.png"))
-                for p in slots:  # bay labels (Hugo 13/11/2026: C.S.P on every bay) open that bay on the shelf page
-                    qr["bays"][f"{b}.{s}.{p}"] = f'{qr["shelves"][shelf_key(b, s)]}#p{p}'
+                for p in slots:  # bay labels (Hugo 13/11/2026: C.S.P) open the bay page with every asset in it
+                    bd = os.path.join(out, bay_slug(b, s, p))
+                    os.makedirs(bd, exist_ok=True)
+                    with open(os.path.join(bd, "index.html"), "w", encoding="utf-8") as f:
+                        f.write(page(f'{loc["title"]} · Bay {b}.{s}.{p}', f"Bay {b}.{s}.{p}", loc["title"],
+                                     gated(loc, bay_body(loc, b, s, p, slots)),
+                                     2, updated).replace('src="img/', 'src="../img/'))
+                    qr["bays"][f"{b}.{s}.{p}"] = url_for(base, loc, b, s, p)
                     make_qr(qr["bays"][f"{b}.{s}.{p}"], os.path.join(qdir, f"bay-{b}-{s}-{p}.png"))
         if loc.get("asset_register"):
             all_bays = sorted({i["bin_location"] for i in items if i.get("bin_location")}, key=bay_key)
@@ -1285,7 +1351,7 @@ def check():
         qdir = ldir(loc, "qr")
         pairs = [("cabinet.png", qr["cabinet"], loc["title"])] + \
             [(f"shelf-{k.replace('.', '-')}.png", u, f"Shelf {k}") for k, u in qr["shelves"].items()] + \
-            [(f"bay-{k.replace('.', '-')}.png", u, f'id=p{k.split(".")[2]}') for k, u in qr.get("bays", {}).items()]
+            [(f"bay-{k.replace('.', '-')}.png", u, f"Bay {k}") for k, u in qr.get("bays", {}).items()]
         for png, url, must in pairs:
             n += 1
             img = cv2.imread(os.path.join(qdir, png))
@@ -1293,7 +1359,7 @@ def check():
             if not text:  # the classic detector misses some valid codes
                 text, _, _ = cv2.QRCodeDetectorAruco().detectAndDecode(img)
             r = requests.get(url, timeout=30)
-            ok = text == url and r.status_code == 200 and (esc(must) in r.text or must.replace("id=", 'id="') + '"' in r.text)
+            ok = text == url and r.status_code == 200 and esc(must) in r.text
             if not ok:
                 bad.append(f"{loc['slug']}/{png}: qr={text!r} http={r.status_code}")
     print(f"checked {n} QR codes / pages, {len(bad)} problems")
