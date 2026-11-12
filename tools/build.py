@@ -233,7 +233,7 @@ main{max-width:1180px;margin:0 auto;padding:18px 16px 40px}
 /* shelf page */
 .strip{display:grid;grid-template-columns:repeat(var(--p),1fr);gap:6px;border-radius:12px;padding:8px;background:var(--panel)}
 .strip a{display:block;text-align:center;padding:10px 0;border-radius:8px;box-shadow:var(--sh);background:#fff;color:var(--deep);text-decoration:none;font-weight:800}
-#baylist .code{display:none}.hero a.code{display:block}.strip a.here{background:var(--deep);color:#fff}.strip a.empty{box-shadow:none;background:transparent;color:var(--grey)}
+#baylist .code{display:none}.hero a.code{display:block}.strip a.here{background:var(--deep);color:#fff}.strip a.empty{color:var(--grey)}.strip a.empty::after{content:" · free";font-size:.8em}
 .cards{display:grid;gap:12px}
 @media(min-width:700px){.cards{grid-template-columns:repeat(2,1fr)}}
 .card{border-radius:12px;background:#fff;box-shadow:var(--sh);padding:14px;display:flex;gap:14px;align-items:center;scroll-margin-top:70px}
@@ -428,7 +428,9 @@ def register_table(loc, rows, link):
 
 
 def shelf_body(loc, b, s, slots):
-    body = [f'<p class="crumb mono"><a href="../">‹ {esc(loc["title"])}</a></p>',
+    # bay labels printed before 13/11/2026 point at <shelf>/#p<bay>: forward them to the bay page
+    body = ['<script>(function(){var m=/^#p([0-9]+)$/.exec(location.hash);if(m)location.replace(location.pathname.replace(/\\/(index\\.html)?$/,"")+"-"+m[1]+"/")})()</script>',
+            f'<p class="crumb mono"><a href="../">‹ {esc(loc["title"])}</a></p>',
             f'<div class="sec"><h2 class="mono">01 / Bays on this shelf</h2><span class="mono">{loc["unit_word"]} {b} · Shelf {s}</span></div>',
             f'<div class="strip" style="--p:{len(slots)}">']
     for p, its in slots.items():
