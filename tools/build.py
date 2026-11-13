@@ -219,7 +219,7 @@ main{max-width:1180px;margin:0 auto;padding:18px 16px 40px}
 .bin{background:#F5F8FC}.slot a.code{color:var(--blue)}.shelf{padding:10px;margin:10px;background:#fff;border-radius:12px;box-shadow:var(--sh)}
 /* Hugo 13/11/2026: shelves, bays and assets lift a little under the pointer, like buttons */
 .shelf,.slot,.mini,.acard,.bhd,.baysel a,.back,.idx a,a.card{transition:transform .15s ease,box-shadow .15s ease}
-@media(hover:hover){body:not(.editing) .shelf:hover{box-shadow:0 6px 18px rgba(5,18,51,.14)}
+@media(hover:hover){body:not(.editing) .shelf:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(5,18,51,.18)}
 body:not(.editing) .slot:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(5,18,51,.10)}
 body:not(.editing) .mini:hover,.acard:hover,a.card:hover,.idx a:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(5,18,51,.18)}
 .bhd:hover,.baysel a:hover,.back:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(5,18,51,.14)}}
