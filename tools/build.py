@@ -274,7 +274,7 @@ body.pkopen{overflow:hidden}
 .regrow{grid-template-columns:64px 1fr}.regrow .th{grid-row:1/span 5;width:64px;height:64px;border-radius:10px;background:var(--panel);display:flex;align-items:center;justify-content:center;overflow:hidden}.regrow .th img{max-width:58px;max-height:58px;object-fit:contain}.regrow .am{grid-row:auto}.regrow>span:not(.th),.regrow .badge{grid-column:2}
 .pkrow .nm,.regrow .nm{font-weight:600;font-size:14px}.pkrow .mk,.regrow .mk,.pkrow .wh,.regrow .wh{font-size:12px;color:var(--grey)}
 .regrow .badge{grid-column:2;justify-self:start;font-size:11px;margin-top:3px}.regrow.nolink{cursor:default}
-.regbox{max-width:480px}.rdet{overflow-y:auto;padding:0 16px 16px}.rpic{background:var(--panel);border-radius:12px;height:180px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.regbox{max-width:620px}.pkact{display:flex;align-items:center;gap:8px}.pkfull{font-size:13px;font-weight:700;color:var(--blue);text-decoration:none;background:var(--panel);border-radius:8px;padding:7px 10px}.rdet{overflow-y:auto;padding:0 16px 16px}.rpic{background:var(--panel);border-radius:12px;height:180px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
 .rpic img{max-height:160px;max-width:90%;object-fit:contain}.rnm{font-weight:700;font-size:17px;margin-bottom:6px}.rdet .spec{margin:12px 0 4px}.rdet .btn{margin-top:8px}
 .pkmsg{padding:14px;color:var(--grey);font-size:13px;text-align:center}
 .regbar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 12px}.regbar #regq{flex:1 1 280px;margin:0}
@@ -283,6 +283,9 @@ body.pkopen{overflow:hidden}
 .regbar select{font:inherit;font-size:15px;padding:10px;border:1px solid var(--rule);border-radius:10px;background:#fff}
 .reglist{background:#fff;border-radius:14px;box-shadow:var(--sh);padding:6px}.reglist .regrow+.regrow{border-top:1px solid #EEF2F7;border-radius:0}
 .ttl .big:not(.mono){font-size:32px}
+html.embed header,html.embed footer,html.embed .nav,html.embed .gear{display:none!important}html.embed main{padding-top:6px}
+.ref.big2{font-size:22px}
+.regframe{border:0;width:100%;height:78vh;display:block}
 .nav{font-size:13px;color:var(--grey);margin:0 0 10px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
 .nav a{color:var(--grey);text-decoration:none}.nav a:hover{color:var(--blue);text-decoration:underline}.nav a.here{color:var(--blue);font-weight:700}.nav i{font-style:normal;opacity:.6}.nav b{color:var(--blue);font-weight:700}
 .back{display:inline-flex;align-items:center;gap:8px;background:var(--panel);color:var(--deep);border-radius:10px;padding:9px 14px;font-weight:600;font-size:14px;text-decoration:none;margin:4px 0 16px}
@@ -392,7 +395,7 @@ def page(title, h1, sub, body, depth, updated, menu=""):
 <link rel="icon" href="{up}logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-<style>{CSS}</style></head><body>
+<script>if(/[?&]embed=1/.test(location.search))document.documentElement.className+=' embed'</script><style>{CSS}</style></head><body>
 <header><div class="hd"><img src="{up}logo.png" alt="Sofraco"><div class="t"><h1>{esc(h1)}</h1><div class="sub mono">{esc(sub)}</div></div>{menu}</div></header>
 <main>{body}</main>
 <footer><span>Sofraco Engineering Systems</span><span class="mono">Updated {updated}</span></footer>
@@ -457,19 +460,13 @@ q.addEventListener('input',function(){draw()});fl.addEventListener('change',func
 // Hugo 13/11/2026: a row opens the asset's details here, without leaving the register
 var IMG=document.getElementById('regpage').dataset.img,RAW='https://raw.githubusercontent.com/workshopsofraco/workshopsofraco.github.io/main/data/images/';
 function row(k,v){return v?'<dt>'+k+'</dt><dd>'+e2(v)+'</dd>':''}
-function show(A){var a=all.filter(function(x){return x.AssetNumber===A})[0];if(!a)return;
-  var m=document.createElement('div');m.className='pkr';var bay=a.StorageLocation===here&&/^\\d+\\.\\d+\\.\\d+$/.test(a.StorageBay)?a.StorageBay:'';
-  m.innerHTML='<div class="pkbox regbox"><div class="pkhd"><b class="mono">'+e2(A)+'</b><button type="button" class="pkx" aria-label="Close">✕</button></div>'+
-    '<div class="rdet"><div class="rpic"><img alt="" src="'+IMG+e2(A)+'_OEM.webp"></div><div class="rnm">'+e2(a.Desc2)+'</div>'+badge(a.CalibrationStatus)+
-    '<dl class="spec">'+row('Make',a.Make)+row('Model',a.Model)+row('Serial',a.SerialNo)+row('Category',a.Category)+row('Status',a.EquipmentStatus)+
-    row('Stored at',[a.StorageLocation,a.StorageBay].filter(Boolean).join(' · '))+row('Whereabouts',a.Whereabouts)+'</dl>'+
-    (pages[A]?'<a class="btn alt" href="'+UP+'asset/'+e2(A)+'/">Open asset page (send, deliver, certificate)</a>':'')+
-    (bay?'<a class="btn alt" href="'+UP+bay.replace(/\\./g,'-')+'/">Open bay '+e2(bay)+'</a>':'')+'</div></div>';
+function show(A){var m=document.createElement('div');m.className='pkr';
+  var src=pages[A]?UP+'asset/'+encodeURIComponent(A)+'/?embed=1':UP+'asset/view/?am='+encodeURIComponent(A)+'&embed=1';
+  m.innerHTML='<div class="pkbox regbox"><div class="pkhd"><b class="mono">'+e2(A)+'</b><span class="pkact"><a class="pkfull" href="'+src.replace(/[?&]embed=1/,'')+'">Open full page ›</a><button type="button" class="pkx" aria-label="Close">✕</button></span></div>'+
+    '<iframe class="regframe" title="'+e2(A)+'" src="'+src+'"></iframe></div>';
   document.body.appendChild(m);document.body.classList.add('pkopen');
-  var img=m.querySelector('.rpic img'),n=0;img.onerror=function(){n++;if(n===1)img.src=ROOT+'thumbs/'+A+'.webp';else img.remove()};
   function close(){m.remove();document.body.classList.remove('pkopen')}
-  m.addEventListener('click',function(e){if(e.target===m||e.target.closest('.pkx'))close()});
-  SL.post({action:'status',asset:A}).then(function(r){if(r&&r.photo){var i=m.querySelector('.rpic img');if(!i){i=document.createElement('img');m.querySelector('.rpic').appendChild(i)}i.onerror=null;i.src=r.photo}}).catch(function(){})}
+  m.addEventListener('click',function(e){if(e.target===m||e.target.closest('.pkx'))close()})}
 box.addEventListener('click',function(e){var r=e.target.closest('.regrow');if(r)show(r.dataset.a)});
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=document.querySelector('.pkr');if(m){m.remove();document.body.classList.remove('pkopen')}}});
 })();
@@ -1228,6 +1225,37 @@ def cal_badge(cs):
     return f'<span class="badge {kind}">{esc(label)}</span>'
 
 
+VIEW_JS = """
+(function(){var A=(new URLSearchParams(location.search).get('am')||'').toUpperCase(),el=function(i){return document.getElementById(i)};
+function e2(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function badge(cs){if(!cs)return '';var k={'Calibrated':'ok','Out of Calibration':'bad'}[cs]||'';return '<span class="badge '+k+'">'+e2(cs==='Not Required'?'No Cal Required':cs)+'</span>'}
+el('vam').textContent=A;el('vdocs').href='https://sofraco.sharepoint.com/sites/AssetManagement/Shared%20Documents/01.%20Assets/'+encodeURIComponent(A);
+var img=el('vimg');img.src='../../../thumbs/'+A+'.webp';img.onerror=function(){img.remove()};
+function fill(a){if(!a)return;el('vdesc').textContent=a.Desc2||'';var rows=[['Asset No','<b class="mono">'+e2(A)+'</b>'],['Description',e2(a.Desc2)],['Make',e2(a.Make)],['Model',e2(a.Model)],
+  ['Serial No',a.SerialNo?'<span class="mono">'+e2(a.SerialNo)+'</span>':''],['Category',e2(a.Category)],
+  ['Status',a.EquipmentStatus?'<span class="badge '+(a.EquipmentStatus==='Active'?'ok':'bad')+'">'+e2(a.EquipmentStatus)+'</span>':''],
+  ['Calibration',badge(a.CalibrationStatus)],['Stored at',e2([a.StorageLocation,a.StorageBay].filter(Boolean).join(' · '))],['Whereabouts',e2(a.Whereabouts)]];
+  el('vspec').innerHTML=rows.filter(function(r){return r[1]}).map(function(r){return '<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>'}).join('')}
+SL.ready.then(function(ok){if(!ok)return;SL.register().then(function(list){fill(list.filter(function(a){return a.AssetNumber===A})[0])}).catch(function(){});
+  SL.post({action:'status',asset:A}).then(function(r){if(r&&r.photo){var i=el('vimg')||document.createElement('img');i.onerror=null;i.src=r.photo;if(!i.parentNode)el('vpic').appendChild(i)}
+    if(r&&r.found===false)el('vdesc').textContent='Not found in the Asset Register'}).catch(function(){})});
+})();
+"""
+
+
+def view_body(loc):
+    """Any AM-R055 asset (?am=AM00123): the asset page for assets that have no storage bay page (Hugo 13/11/2026)."""
+    mv = move_panel(loc, "")
+    mv = mv.replace("<script>", '<script>document.getElementById("move").dataset.asset=(new URLSearchParams(location.search).get("am")||"").toUpperCase();</script><script>', 1)
+    return ('<div class="hero"><div class="ph" id="vpic"><img id="vimg" alt=""></div><div><div class="ref mono big2" id="vam"></div>'
+            '<div class="desc" id="vdesc">Loading…</div></div></div>' + mv +
+            '<div class="sec"><h2 class="mono">01 / Specifications</h2></div><dl class="spec" id="vspec"></dl>'
+            '<div class="sec"><h2 class="mono">02 / Documents</h2></div>'
+            '<a class="btn alt" id="vdocs" target="_blank" rel="noopener" href="#">Manuals, datasheets &amp; all certificates</a>'
+            '<div class="hint">Asset folder in SharePoint · opens with your Sofraco sign-in</div>'
+            f'<script>{VIEW_JS}</script>')
+
+
 def asset_body(loc, it, reg, all_bays):
     b, s, p = it["bin_location"].split(".")
     rows = []
@@ -1396,6 +1424,11 @@ def build():
                         f.write(page(f'{it["ref"]} · {it["description"]}', it["ref"], loc["title"],
                                      gated(loc, asset_body(loc, it, it.get("_reg"), all_bays)),
                                      3, updated, menu_html(loc, "../../../")).replace('src="img/', 'src="../../img/'))
+            if live(loc):
+                vd = os.path.join(out, "asset", "view")
+                os.makedirs(vd, exist_ok=True)
+                with open(os.path.join(vd, "index.html"), "w", encoding="utf-8") as f:
+                    f.write(page(f'{loc["title"]} · Asset', "Asset", loc["title"], gated(loc, view_body(loc)), 3, updated, menu_html(loc, "../../../")))
         with open(ws(loc["qr_json"]), "w", encoding="utf-8") as f:
             json.dump(qr, f, indent=2)
         n = sum(1 for i in items if i.get("description"))
