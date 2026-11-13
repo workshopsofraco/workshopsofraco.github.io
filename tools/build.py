@@ -273,6 +273,8 @@ body.pkopen{overflow:hidden}
 .pkrow .am,.regrow .am{color:var(--blue);font-weight:700;font-size:13px;grid-row:span 3}
 .pkrow .nm,.regrow .nm{font-weight:600;font-size:14px}.pkrow .mk,.regrow .mk,.pkrow .wh,.regrow .wh{font-size:12px;color:var(--grey)}
 .regrow .badge{grid-column:2;justify-self:start;font-size:11px;margin-top:3px}.regrow.nolink{cursor:default}
+.regbox{max-width:480px}.rdet{overflow-y:auto;padding:0 16px 16px}.rpic{background:var(--panel);border-radius:12px;height:180px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.rpic img{max-height:160px;max-width:90%;object-fit:contain}.rnm{font-weight:700;font-size:17px;margin-bottom:6px}.rdet .spec{margin:12px 0 4px}.rdet .btn{margin-top:8px}
 .pkmsg{padding:14px;color:var(--grey);font-size:13px;text-align:center}
 .regbar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 12px}.regbar #regq{flex:1 1 280px;margin:0}
 .regbar select{font:inherit;font-size:15px;padding:10px;border:1px solid var(--rule);border-radius:10px;background:#fff}
@@ -430,14 +432,32 @@ function opts(sel,vals,first){var cur=sel.value;sel.innerHTML='<option value="">
 function uniq(f){var s={};all.forEach(function(a){if(a[f])s[a[f]]=1});return Object.keys(s).sort()}
 function draw(){var r=SL.match(all,q.value).filter(function(a){return(!fl.value||a.StorageLocation===fl.value)&&(!fc.value||a.CalibrationStatus===fc.value)});
   cnt.textContent=r.length+' of '+all.length+' assets';var shown=r.slice(0,200);
-  box.innerHTML=shown.map(function(a){var has=pages[a.AssetNumber],tag=has?'a':'div';
-    return '<'+tag+' class="regrow'+(has?'':' nolink')+'"'+(has?' href="asset/'+e2(a.AssetNumber)+'/"':'')+'><span class="am mono">'+e2(a.AssetNumber)+'</span>'+
+  box.innerHTML=shown.map(function(a){var tag='button';
+    return '<'+tag+' type="button" class="regrow" data-a="'+e2(a.AssetNumber)+'"><span class="am mono">'+e2(a.AssetNumber)+'</span>'+
       '<span class="nm">'+e2(a.Desc2)+'</span><span class="mk">'+e2([a.Make,a.Model].filter(Boolean).join(' · '))+(a.SerialNo?' · S/N '+e2(a.SerialNo):'')+'</span>'+
       '<span class="wh">'+e2(SL.where(a)||'No storage location')+(a.EquipmentStatus&&a.EquipmentStatus!=='Active'?' · '+e2(a.EquipmentStatus):'')+'</span>'+badge(a.CalibrationStatus)+'</'+tag+'>'}).join('')+
     (r.length>shown.length?'<div class="pkmsg">Showing the first 200 - search to narrow it down.</div>':'')+(r.length?'':'<div class="pkmsg">Nothing matches.</div>')}
 SL.ready.then(function(ok){if(!ok)return;SL.register().then(function(a){all=a;opts(fl,uniq('StorageLocation'),'Every location');opts(fc,uniq('CalibrationStatus'),'Any calibration');
   if(!fl.value&&here&&uniq('StorageLocation').indexOf(here)<0)fl.value='';draw()}).catch(function(){box.innerHTML='<div class="pkmsg">Could not load the register. Try again in a moment.</div>'})});
 q.addEventListener('input',draw);fl.addEventListener('change',draw);fc.addEventListener('change',draw);
+// Hugo 13/11/2026: a row opens the asset's details here, without leaving the register
+var IMG=document.getElementById('regpage').dataset.img,RAW='https://raw.githubusercontent.com/workshopsofraco/workshopsofraco.github.io/main/data/images/';
+function row(k,v){return v?'<dt>'+k+'</dt><dd>'+e2(v)+'</dd>':''}
+function show(A){var a=all.filter(function(x){return x.AssetNumber===A})[0];if(!a)return;
+  var m=document.createElement('div');m.className='pkr';var bay=a.StorageLocation===here&&/^\\d+\\.\\d+\\.\\d+$/.test(a.StorageBay)?a.StorageBay:'';
+  m.innerHTML='<div class="pkbox regbox"><div class="pkhd"><b class="mono">'+e2(A)+'</b><button type="button" class="pkx" aria-label="Close">✕</button></div>'+
+    '<div class="rdet"><div class="rpic"><img alt="" src="'+IMG+e2(A)+'_OEM.webp"></div><div class="rnm">'+e2(a.Desc2)+'</div>'+badge(a.CalibrationStatus)+
+    '<dl class="spec">'+row('Make',a.Make)+row('Model',a.Model)+row('Serial',a.SerialNo)+row('Category',a.Category)+row('Status',a.EquipmentStatus)+
+    row('Stored at',[a.StorageLocation,a.StorageBay].filter(Boolean).join(' · '))+row('Whereabouts',a.Whereabouts)+'</dl>'+
+    (pages[A]?'<a class="btn alt" href="../asset/'+e2(A)+'/">Open asset page (send, deliver, certificate)</a>':'')+
+    (bay?'<a class="btn alt" href="../'+bay.replace(/\\./g,'-')+'/">Open bay '+e2(bay)+'</a>':'')+'</div></div>';
+  document.body.appendChild(m);document.body.classList.add('pkopen');
+  var img=m.querySelector('.rpic img'),n=0;img.onerror=function(){n++;if(n===1)img.src=RAW+A+'_OEM.webp';else if(n===2)img.src=RAW+A+'_OEM.png';else img.remove()};
+  function close(){m.remove();document.body.classList.remove('pkopen')}
+  m.addEventListener('click',function(e){if(e.target===m||e.target.closest('.pkx'))close()});
+  SL.post({action:'status',asset:A}).then(function(r){if(r&&r.photo){var i=m.querySelector('.rpic img');if(!i){i=document.createElement('img');m.querySelector('.rpic').appendChild(i)}i.onerror=null;i.src=r.photo}}).catch(function(){})}
+box.addEventListener('click',function(e){var r=e.target.closest('.regrow');if(r)show(r.dataset.a)});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=document.querySelector('.pkr');if(m){m.remove();document.body.classList.remove('pkopen')}}});
 })();
 """
 
@@ -447,7 +467,7 @@ def register_body(loc, items):
     return (nav(loc, "../", [("Asset register", "./")]) +
             '<div class="ttl"><div class="k">AM-R055</div><div class="big">Asset register</div>'
             '<div class="meta" id="regcount">Loading…</div></div>'
-            f'<div id="regpage" data-loc="{esc(loc["title"])}">{has}<div class="regbar"><input id="regq" type="search" placeholder="Search number, description, make, model, serial, location…" autocomplete="off">'
+            f'<div id="regpage" data-loc="{esc(loc["title"])}" data-img="../img/">{has}<div class="regbar"><input id="regq" type="search" placeholder="Search number, description, make, model, serial, location…" autocomplete="off">'
             '<select id="regloc"><option value="">Every location</option></select><select id="regcal"><option value="">Any calibration</option></select></div>'
             '<div id="reglist" class="reglist"></div></div>'
             f'<script>{REG_JS}</script>')
