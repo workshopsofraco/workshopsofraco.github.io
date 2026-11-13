@@ -313,7 +313,7 @@ a.btn.alt,button.btn.alt{background:#fff;color:var(--deep);border:1.5px solid va
 .slot .mini{display:flex;flex-direction:column;align-items:center;width:100%;text-decoration:none;color:inherit;padding:6px 3px;border:0;border-radius:8px;background:#fff;box-shadow:var(--sh);margin-top:6px}
 .slot .mini .ref{font-size:11px;margin-top:4px}
 .mini.transit,.card.transit{background:#FFF4E5;box-shadow:0 0 0 2px #F59E0B,var(--sh)}
-.tr{font-size:10.5px;font-weight:800;color:#B45309;margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
+.tr{font-size:10.5px;font-weight:700;color:#B45309;margin-top:4px}
 .card .tr{font-size:12px}.card.hl{box-shadow:0 0 0 3px var(--blue),var(--sh)}
 .note.transit{background:#FFF4E5;border-color:#F59E0B;color:#7C2D12;margin-top:12px}
 .mv .gate .btn{margin-top:0}.ed{display:none}
@@ -428,17 +428,19 @@ def away(a):
     return {"to": wh, "away": True} if wh in AWAY_AT else None
 
 
-def transit_text(tr):
+def transit_text(tr, short=False):
+    """Hugo 13/11/2026: keep it short on the cards; the asset page has the full line."""
     if tr.get("away"):
-        return f'At {esc(tr["to"])} · not in its bay'
-    return f'In transit → {esc(tr.get("to") or "?")} · not signed yet'
+        return "At cal facility" if short and tr["to"] == "Calibration Facility" else f'At {esc(tr["to"])}'
+    return "In transit" if short else f'In transit → {esc(tr.get("to") or "?")}'
 
 
 def transit_note(tr):
     """Hugo 05/11/2026: an asset sent on but not yet signed for shows in colour."""
     if not tr:
         return ""
-    return f'<div class="tr">{transit_text(tr)}</div>'
+    raw = ("@" + tr["to"]) if tr.get("away") else (tr.get("to") or "?")
+    return f'<div class="tr" data-t="{esc(raw)}" title="{transit_text(tr)}">{transit_text(tr, True)}</div>'
 
 
 def mini_card(loc, it, b, s, p):
@@ -531,7 +533,7 @@ BAY_JS = """
 var RAW='https://raw.githubusercontent.com/workshopsofraco/workshopsofraco.github.io/main/data/images/';
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function awayOf(a){var t=a.transitTo||(a.transit&&(a.transit.to||'?'));if(t)return t;if(a.Whereabouts===undefined)return null;return a.Whereabouts==='Calibration Facility'?'@'+a.Whereabouts:''}
-function ttxt(t){return t.charAt(0)==='@'?'At '+t.slice(1)+' · not in its bay':'In transit → '+t+' · not signed yet'}
+function ttxt(t){return t.charAt(0)==='@'?'At '+t.slice(1):'In transit → '+t}
 function tr(a){return awayOf(a)}
 function badge(cs){if(!cs)return '';var k={'Calibrated':'ok','Out of Calibration':'bad'}[cs]||'';return '<span class="badge '+k+'">'+esc(cs==='Not Required'?'No Cal Required':cs)+'</span>'}
 function card(a){var A=a.AssetNumber,d=a.desc||[a.Make,a.Model,a.Desc2].filter(Boolean).join(' '),t=tr(a),mk=[a.Make,a.Model].filter(Boolean).join(' · ');
@@ -843,9 +845,9 @@ function take(A){var c=card(A);if(!c)return;var s=c.parentNode;c.remove();fixEmp
 // then checks the live register in the background and only changes what is different.
 var VIEW='sl-view:'+location.pathname.replace(/index\\.html$/,'');
 function awayOf(a){var t=a.transitTo||(a.transit&&(a.transit.to||'?'));if(t)return t;if(a.Whereabouts===undefined)return null;return a.Whereabouts==='Calibration Facility'?'@'+a.Whereabouts:''}
-function ttxt(t){return t.charAt(0)==='@'?'At '+t.slice(1)+' · not in its bay':'In transit → '+t+' · not signed yet'}
+function ttxt(t){return t.charAt(0)==='@'?(t==='@Calibration Facility'?'At cal facility':'At '+t.slice(1)):'In transit'}
 function transitOn(c,to){if(to===null)return;c.classList.toggle('transit',!!to);var tn=c.querySelector('.tr');if(tn)tn.remove();
-  if(to){var d=document.createElement('div');d.className='tr';d.textContent=ttxt(to);c.insertBefore(d,c.querySelector('.ed'))}}
+  if(to){var d=document.createElement('div');d.className='tr';d.dataset.t=to;d.textContent=ttxt(to);c.insertBefore(d,c.querySelector('.ed'))}}
 function applyLayout(r){
   (r.bays||[]).forEach(addBay);var keep={};
   (r.assets||[]).forEach(function(a){if(!/^\\d+\\.\\d+\\.\\d+$/.test(a.StorageBay||''))return;keep[a.AssetNumber]=1;
@@ -858,7 +860,7 @@ function snapshot(){try{var v={at:new Date().toISOString(),bays:[],assets:[]};
   [].forEach.call(root.querySelectorAll('.slot'),function(s){v.bays.push(s.dataset.bay)});
   [].forEach.call(root.querySelectorAll('.mini'),function(c){var tn=c.querySelector('.tr');
     v.assets.push({AssetNumber:c.dataset.asset,StorageBay:c.closest('.slot').dataset.bay,desc:c.querySelector('.desc').textContent,
-      transitTo:tn?tn.textContent.replace(/^In transit → | · not signed yet$/g,''):null})});
+      transitTo:tn?(tn.dataset.t||tn.textContent):null})});
   localStorage.setItem(VIEW,JSON.stringify(v))}catch(e){}}
 (function(){try{var v=JSON.parse(localStorage.getItem(VIEW)||'null');if(v&&(!GEN||v.at>GEN))applyLayout(v)}catch(e){}})();
 function live(){SL.post({action:'layout',location:SL.location}).then(function(r){
