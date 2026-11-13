@@ -249,10 +249,10 @@ body:not(.editing) .mini:active,.acard:active,a.card:active,.bhd:active,.baysel 
 .gear .smenu>summary::after{content:"›";color:var(--blue);transition:transform .15s}.gear .smenu[open]>summary::after{transform:rotate(90deg)}
 .gear .smenu a{padding-left:22px;font-weight:500;font-size:13px}.gear .smenu a small{color:var(--grey);font-weight:400}
 body:not(.editing) #editbtn{display:none}
-.shelfpage .shelf,.baypage .shelf{margin:0;padding:10px;background:var(--panel);box-shadow:none}
+.shelfpage .shelf,.baypage .shelf{margin:0;padding:10px;background:#fff;box-shadow:var(--sh)}
 .shelfpage .shelf:hover,.baypage .shelf:hover{transform:none;box-shadow:none}
-.shelfpage .slots{grid-template-columns:repeat(var(--p),minmax(120px,1fr));overflow-x:auto;gap:8px}
-.shelfpage .slot,.baypage .slot{background:#fff;box-shadow:var(--sh)}
+.shelfpage .slots{grid-template-columns:repeat(var(--p),minmax(130px,1fr));overflow-x:auto;gap:8px}.shelfpage .slot,.shelfpage .mini{min-width:0}
+.shelfpage .slot,.baypage .slot{background:var(--panel);box-shadow:none}.shelfpage .mini,.baypage .mini{box-shadow:0 1px 3px rgba(5,18,51,.20),0 4px 12px rgba(5,18,51,.10)}
 .shelfpage .slot .code{font-size:16px}.slot .mini .badge{font-size:10px;margin-top:4px;padding:1px 7px}.shelfpage .mini .ph{height:84px}.shelfpage .mini .ph img{max-height:80px}
 .shtools{display:none;justify-content:flex-end;margin-bottom:8px}body.editing .shtools{display:flex}
 .baypage .slots{display:block}.baypage .slot{flex-direction:row;flex-wrap:wrap;gap:10px;align-items:stretch;padding:10px}
@@ -692,11 +692,16 @@ GATE_SCREEN = ('<div id="gatescreen" class="mv" hidden><div class="mvmsg">Sofrac
 
 
 FRESH_JS = """
-(function(){var f=document.getElementById('fresh');if(!f)return;var g=f.dataset.gen,src=f.dataset.src,busy=false;
+(function(){var f=document.getElementById('fresh');if(!f)return;var g=f.dataset.gen,src=f.dataset.src,bv=f.dataset.build,vsrc=f.dataset.ver,busy=false;
+function go(v){var k='sl-fresh:'+location.pathname;try{if(sessionStorage.getItem(k)===String(v))return;sessionStorage.setItem(k,String(v))}catch(e){return}   // once per version: never a reload loop
+  busy=true;var u=new URL(location.href);u.searchParams.set('v',v);location.replace(u.toString())}
 function check(){if(busy||window.SLediting||document.querySelector('.ghost'))return;
   fetch(src+'?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
-    if(d.generatedAt&&d.generatedAt>g){busy=true;var u=new URL(location.href);u.searchParams.set('v',Date.parse(d.generatedAt));location.replace(u.toString())}})
-  .catch(function(){})}
+    if(d.generatedAt&&d.generatedAt>g)go(Date.parse(d.generatedAt))})
+  .catch(function(){});
+  // a newer version of the pages themselves (Hugo 13/11/2026: a phone kept an old shelf page)
+  if(vsrc&&bv)fetch(vsrc+'?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+    if(!busy&&d.build&&d.build!==bv)go(d.build)}).catch(function(){})}
 check();
 window.SLfresh=function(){var n=0,iv=setInterval(function(){if(++n>30){clearInterval(iv);return}check()},8000)};
 document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
@@ -704,11 +709,26 @@ document.addEventListener('visibilitychange',function(){if(!document.hidden)chec
 """
 
 
+def _build_id():
+    """Changes whenever the page code changes; pages compare it with the live version.json."""
+    import hashlib
+    h = hashlib.sha1()
+    for n in ("build.py", "lab_pdfs.py"):
+        p = os.path.join(os.path.dirname(os.path.abspath(__file__)), n)
+        if os.path.exists(p):
+            h.update(open(p, "rb").read())
+    return h.hexdigest()[:12]
+
+
+BUILD_ID = _build_id()
+
+
 def fresh(loc):
     if not loc.get("asset_register"):
         return ""
     gen = load_layout(loc).get("generatedAt", "")
-    return (f'<div id="fresh" hidden data-gen="{esc(gen)}" data-src="{esc(loc["_base"] + "data/" + loc["slug"] + "/layout.json")}"></div>'
+    return (f'<div id="fresh" hidden data-gen="{esc(gen)}" data-src="{esc(loc["_base"] + "data/" + loc["slug"] + "/layout.json")}"'
+            f' data-build="{BUILD_ID}" data-ver="{esc(loc["_base"] + "version.json")}"></div>'
             f'<script>{FRESH_JS}</script>')
 
 
@@ -1226,6 +1246,8 @@ def build():
                          f'a.initialize().then(function(){{return a.handleRedirectPromise()}}).then(function(r){{'
                          f'if(!r)location.replace({json.dumps(base)})}});</script>', 1, updated)
                     .replace('href="../logo.png"', 'href="../logo.png"'))
+    with open(os.path.join(SITE, "version.json"), "w", encoding="utf-8") as f:
+        json.dump({"build": BUILD_ID}, f)
     with open(os.path.join(SITE, "index.html"), "w", encoding="utf-8") as f:
         f.write(page("Storage layouts", "Storage Layouts", "Scan the QR on a cabinet or shelf",
                      '<div class="idx">' + "".join(index) + "</div>", 0, updated).replace('href="../logo.png"', 'href="logo.png"'))
