@@ -427,7 +427,7 @@ EDITBAR = ('<div data-editor-only hidden><div class="editbar"><button id="editbt
 
 REG_JS = """
 (function(){var box=document.getElementById('reglist'),q=document.getElementById('regq'),fl=document.getElementById('regloc'),fc=document.getElementById('regcal'),
-  fw=document.getElementById('regwh'),ps=document.getElementById('regper'),pager=document.getElementById('regpager'),pageNo=0,
+  ps=document.getElementById('regper'),pager=document.getElementById('regpager'),pageNo=0,
   cnt=document.getElementById('regcount'),RP=document.getElementById('regpage'),here=RP.dataset.loc,UP=RP.dataset.up||'',ROOT=UP+'../',all=[],pages={};
 [].forEach.call(document.querySelectorAll('#regpage [data-has]'),function(e){pages[e.dataset.has]=1});
 function e2(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
@@ -435,7 +435,7 @@ function badge(cs){if(!cs)return '';var k={'Calibrated':'ok','Out of Calibration
 function opts(sel,vals,first){var cur=sel.value;sel.innerHTML='<option value="">'+first+'</option>'+vals.map(function(v){return '<option>'+e2(v)+'</option>'}).join('');sel.value=cur}
 function uniq(f){var s={};all.forEach(function(a){if(a[f])s[a[f]]=1});return Object.keys(s).sort()}
 function draw(keep){if(!keep)pageNo=0;
-  var r=SL.match(all,q.value).filter(function(a){return(!fl.value||a.StorageLocation===fl.value)&&(!fw.value||a.Whereabouts===fw.value)&&(!fc.value||a.CalibrationStatus===fc.value)});
+  var r=SL.match(all,q.value).filter(function(a){var L=fl.value;return(!L||(L.charAt(0)==='s'?a.StorageLocation===L.slice(2):a.Whereabouts===L.slice(2)))&&(!fc.value||a.CalibrationStatus===fc.value)});
   var per=ps.value==='all'?r.length||1:+ps.value,pages=Math.max(1,Math.ceil(r.length/per));if(pageNo>=pages)pageNo=pages-1;
   var from=pageNo*per,shown=r.slice(from,from+per);
   cnt.textContent=(r.length?(from+1)+'-'+(from+shown.length)+' of ':'0 of ')+r.length+' active assets';
@@ -446,11 +446,12 @@ function draw(keep){if(!keep)pageNo=0;
       '<span class="wh">'+e2(SL.where(a)||'No storage location')+'</span>'+badge(a.CalibrationStatus)+'</'+tag+'>'}).join('')+
     (r.length?'':'<div class="pkmsg">Nothing matches.</div>')}
 pager.addEventListener('click',function(e){var b=e.target.closest('button[data-p]');if(!b||b.disabled)return;pageNo+=+b.dataset.p;draw(true);RP.scrollIntoView({block:'start'})});
-ps.addEventListener('change',function(){draw()});fw.addEventListener('change',function(){draw()});
+ps.addEventListener('change',function(){draw()});
 // on the location page it sits folded up and loads only when opened (Hugo 13/11/2026)
 var fold=RP.closest('details'),started=false;
-function start(){if(started)return;started=true;SL.ready.then(function(ok){if(!ok)return;SL.register().then(function(a){all=a.filter(function(x){return x.EquipmentStatus==='Active'});opts(fl,uniq('StorageLocation'),'Every storage location');opts(fw,uniq('Whereabouts'),'Any whereabouts');opts(fc,uniq('CalibrationStatus'),'Any calibration');
-  if(!fl.value&&here&&uniq('StorageLocation').indexOf(here)<0)fl.value='';draw()}).catch(function(){started=false;box.innerHTML='<div class="pkmsg">Could not load the register. Try again in a moment.</div>'})})}
+function start(){if(started)return;started=true;SL.ready.then(function(ok){if(!ok)return;SL.register().then(function(a){all=a.filter(function(x){return x.EquipmentStatus==='Active'});(function(){var cur=fl.value,g=function(lbl,p,v){return v.length?'<optgroup label="'+lbl+'">'+v.map(function(x){return '<option value="'+p+e2(x)+'">'+e2(x)+'</option>'}).join('')+'</optgroup>':''};
+    fl.innerHTML='<option value="">Any location</option>'+g('Storage','s:',uniq('StorageLocation'))+g('Whereabouts','w:',uniq('Whereabouts'));fl.value=cur})();opts(fc,uniq('CalibrationStatus'),'Any calibration');
+  draw()}).catch(function(){started=false;box.innerHTML='<div class="pkmsg">Could not load the register. Try again in a moment.</div>'})})}
 if(fold){fold.addEventListener('toggle',function(){if(fold.open){start();setTimeout(function(){q.focus()},50)}});if(fold.open)start()}else start();
 q.addEventListener('input',function(){draw()});fl.addEventListener('change',function(){draw()});fc.addEventListener('change',function(){draw()});
 // Hugo 13/11/2026: a row opens the asset's details here, without leaving the register
@@ -479,7 +480,7 @@ def register_block(loc, items, up):
     """The searchable register. up = path from this page to the location page."""
     has = "".join(f'<i hidden data-has="{esc(i["ref"])}"></i>' for i in items if i.get("ref") and i.get("bin_location"))
     return (f'<div id="regpage" data-loc="{esc(loc["title"])}" data-up="{up}" data-img="{up}img/">{has}<div class="regbar"><input id="regq" type="search" placeholder="Search number, description, make, model, serial, location…" autocomplete="off">'
-            '<select id="regloc"><option value="">Every storage location</option></select><select id="regwh"><option value="">Any whereabouts</option></select>'
+            '<select id="regloc"><option value="">Any location</option></select>'
             '<select id="regcal"><option value="">Any calibration</option></select>'
             '<select id="regper" title="Per page"><option value="25">25 per page</option><option value="50" selected>50 per page</option><option value="100">100 per page</option>'
             '<option value="200">200 per page</option><option value="all">All</option></select></div>'
