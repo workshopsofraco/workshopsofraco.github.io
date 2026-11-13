@@ -215,6 +215,8 @@ main{max-width:1180px;margin:0 auto;padding:18px 16px 40px}
 .bins{display:grid;gap:16px}
 @media(min-width:900px){.bins{grid-template-columns:repeat(var(--n),1fr)}}
 .bin{border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 4px rgba(5,18,51,.06),0 8px 24px rgba(5,18,51,.10)}
+.binhd small{float:right;font-size:11px;letter-spacing:.04em;text-transform:none;font-weight:600;opacity:.8}a.binhd{display:block;color:#fff;text-decoration:none}a.binhd:hover small{opacity:1;text-decoration:underline}
+.cabpage{max-width:640px}.cabpage .binhd small{display:none}
 .binhd{background:var(--deep);color:#fff;font-weight:700;letter-spacing:.12em;padding:8px 12px;text-transform:uppercase;font-size:13px}
 .bin{background:#F5F8FC}.slot a.code{color:var(--blue)}.shelf{padding:10px;margin:10px;background:#fff;border-radius:12px;box-shadow:var(--sh)}
 /* Hugo 13/11/2026: shelves, bays and assets lift a little under the pointer, like buttons */
@@ -401,6 +403,37 @@ EDITBAR = ('<div data-editor-only hidden><div class="editbar"><button id="editbt
            '<div id="trash" class="ed">Drop here to remove from this storage</div></div>')
 
 
+def cabinet_section(loc, b, shelves, up):
+    """One cabinet: dark band (opens the cabinet page) and its shelves as cards. up = path to the location page."""
+    out = [f'<section class="bin" id="cab{b}"><a class="binhd plain" href="{up}{b}/">{loc["unit_word"]} {b}<small>Open {loc["unit_word"].lower()} ›</small></a>']
+    for s, slots in shelves.items():
+        out.append(f'<div class="shelf" id="s{b}-{s}" data-next="{b}.{s}.{max(slots) + 1 if slots else 1}"><a class="sh" href="{up}{shelf_slug(b, s)}/">'
+                   f'<span>Shelf {b}.{s}</span><button class="ed addbay" type="button">+ bay</button><small>Open shelf ›</small></a>'
+                   f'<div class="slots" style="--p:{len(slots)}">')
+        out += [slot_cell(loc, b, s, p, its, up) for p, its in slots.items()]
+        out.append('</div></div>')
+    out.append('</section>')
+    return "".join(out)
+
+
+def cab_body(loc, b, shelves, tree):
+    """Hugo 13/11/2026: a page per cabinet, between the location and its shelves."""
+    n = sum(len(v) for sl in shelves.values() for v in sl.values())
+    nb = sum(len(sl) for sl in shelves.values())
+    editable = live(loc) and loc.get("asset_register")
+    body = [nav(loc, "../", [(f'{loc["unit_word"]} {b}', "./")]),
+            f'<div class="ttl"><div class="k">{esc(loc["unit_word"])}</div><div class="big mono">{b}</div>'
+            f'<div class="meta">{len(shelves)} shelves · {nb} bays · {n} {"asset" if n == 1 else "assets"}</div></div>',
+            f'<div class="rowhint">{esc(loc["unit_word"])}s</div><div class="baysel" style="--p:{len(tree)}">']
+    body += [f'<a class="mono {"here" if c == b else ""}" href="../{c}/">{loc["unit_word"]} {c}</a>' for c in tree]
+    body.append('</div>')
+    body.append(EDITBAR if editable else "")
+    body.append(f'<div class="bins cabpage" id="layout" data-up="../" style="--n:1">{cabinet_section(loc, b, shelves, "../")}</div>')
+    if editable:
+        body.append(f'<script>{EDIT_JS}</script>')
+    return "".join(body)
+
+
 def cabinet_body(loc, tree, unplaced, items):
     n_items = sum(1 for i in items if i.get("description"))
     body = []
@@ -410,15 +443,7 @@ def cabinet_body(loc, tree, unplaced, items):
             body.append(EDITBAR)
         body.append(f'<div class="bins" id="layout" style="--n:{len(tree)}">')
         for b, shelves in tree.items():
-            body.append(f'<section class="bin" id="cab{b}"><div class="binhd">{loc["unit_word"]} {b}</div>')
-            for s, slots in shelves.items():
-                body.append(f'<div class="shelf" id="s{b}-{s}" data-next="{b}.{s}.{max(slots) + 1 if slots else 1}"><a class="sh" href="../{loc["slug"]}/{shelf_slug(b, s)}/">'
-                            f'<span>Shelf {b}.{s}</span><button class="ed addbay" type="button">+ bay</button><small>Open shelf ›</small></a>'
-                            f'<div class="slots" style="--p:{len(slots)}">')
-                for p, its in slots.items():
-                    body.append(slot_cell(loc, b, s, p, its))
-                body.append('</div></div>')
-            body.append('</section>')
+            body.append(cabinet_section(loc, b, shelves, ""))
         body.append('</div>')
     if unplaced:
         body.append(f'<div class="sec"><h2 class="mono">{"02" if tree else "01"} / Not yet placed</h2><span class="mono">{len(unplaced)} items</span></div>')
@@ -537,7 +562,7 @@ def shelf_body(loc, b, s, slots):
     count = sum(len(v) for v in slots.values())
     editable = live(loc) and loc.get("asset_register")
     body = ['<script>(function(){var m=/^#p([0-9]+)$/.exec(location.hash);if(m)location.replace(location.pathname.replace(/\\/(index\\.html)?$/,"")+"-"+m[1]+"/")})()</script>',
-            nav(loc, "../", [(f'{loc["unit_word"]} {b}', f"../#cab{b}"), (f"Shelf {b}.{s}", "./")]),
+            nav(loc, "../", [(f'{loc["unit_word"]} {b}', f"../{b}/"), (f"Shelf {b}.{s}", "./")]),
             f'<div class="ttl"><div class="k">Shelf</div><div class="big mono">{b}.{s}</div>'
             f'<div class="meta">{loc["unit_word"]} {b} · {count} {"asset" if count == 1 else "assets"} in {len(slots)} bays</div></div>',
             '<div class="rowhint">Left to right, as on the shelf · tap a bay number to open it</div>',
@@ -581,7 +606,7 @@ def bay_body(loc, b, s, p, slots):
     its = slots.get(p, [])
     code = f"{b}.{s}.{p}"
     editable = live(loc) and loc.get("asset_register")
-    body = [nav(loc, "../", [(f'{loc["unit_word"]} {b}', f"../#cab{b}"), (f"Shelf {b}.{s}", f"../{shelf_slug(b, s)}/"), (f"Bay {code}", "./")]),
+    body = [nav(loc, "../", [(f'{loc["unit_word"]} {b}', f"../{b}/"), (f"Shelf {b}.{s}", f"../{shelf_slug(b, s)}/"), (f"Bay {code}", "./")]),
             f'<div class="ttl"><div class="k">Bay</div><div class="big mono">{code}</div>'
             f'<div class="meta">{loc["unit_word"]} {b} · Shelf {b}.{s} · <span id="baycount">{len(its)} {"asset" if len(its) == 1 else "assets"}</span></div></div>',
             f'<div class="rowhint">Bays on shelf {b}.{s}, left to right</div><div class="baysel" style="--p:{len(slots)}">']
@@ -1132,7 +1157,7 @@ def asset_body(loc, it, reg, all_bays):
                 f'<a class="btn alt" target="_blank" rel="noopener" href="{esc(folder["Url"])}">Manuals, datasheets &amp; all certificates</a>'
                 f'<div class="hint">Asset folder in SharePoint · opens with your Sofraco sign-in</div>')
     missing = "" if reg else '<div class="note">This asset number was not found in the Asset Register.</div>'
-    return (nav(loc, "../../", [(f'{loc["unit_word"]} {b}', f"../../#cab{b}"), (f"Shelf {b}.{s}", f"../../{b}-{s}/"), (f"Bay {b}.{s}.{p}", f"../../{b}-{s}-{p}/"), (esc(it["ref"]), "./")]) +
+    return (nav(loc, "../../", [(f'{loc["unit_word"]} {b}', f"../../{b}/"), (f"Shelf {b}.{s}", f"../../{b}-{s}/"), (f"Bay {b}.{s}.{p}", f"../../{b}-{s}-{p}/"), (esc(it["ref"]), "./")]) +
             back(f"../../{b}-{s}-{p}/", f"Bay {b}.{s}.{p}") +
             f'<div class="hero">{photo(loc, it)}<div><a class="code mono plain" href="../../{b}-{s}-{p}/">{esc(it["bin_location"])}</a>'
             f'<div class="ref mono">{esc(it["ref"])}</div><div class="desc">{esc(it["description"])}</div></div></div>'
@@ -1190,6 +1215,12 @@ def build():
             shutil.rmtree(qdir, ignore_errors=True)
         make_qr(qr["cabinet"], os.path.join(qdir, "cabinet.png"))
         for b, shelves in tree.items():
+            cd = os.path.join(out, str(b))
+            os.makedirs(cd, exist_ok=True)
+            with open(os.path.join(cd, "index.html"), "w", encoding="utf-8") as f:
+                f.write(page(f'{loc["title"]} · {loc["unit_word"]} {b}', f'{loc["unit_word"]} {b}', loc["title"],
+                             gated(loc, cab_body(loc, b, shelves, tree)), 2, updated,
+                             menu_html(loc, "../../")).replace('src="img/', 'src="../img/'))
             for s, slots in shelves.items():
                 d = os.path.join(out, shelf_slug(b, s))
                 os.makedirs(d, exist_ok=True)
@@ -1337,7 +1368,7 @@ def refresh_fsl():
         pg = page_for(ctx, FSL_SITE, port=port)
         try:
             if "sharepoint.com" not in pg.url:
-                pg.goto(FSL_SITE)
+                pg.goto(FSL_SITE, wait_until="domcontentloaded", timeout=90000)
             r = ctx.request.get(f"{FSL_SITE}/_api/web/lists(guid'{FSL_LIST}')/items?$top=5000",
                                 headers={"Accept": "application/json;odata=nometadata"})
             rows = r.json()["value"]
@@ -1389,7 +1420,7 @@ def refresh_layouts():
         pg = page_for(ctx, ASSET_SITE, port=port)
         try:
             if "sharepoint.com" not in pg.url:
-                pg.goto(ASSET_SITE)
+                pg.goto(ASSET_SITE, wait_until="domcontentloaded", timeout=90000)
             sel = ",".join(f for f in ASSET_FIELDS + ["StorageLocation"] if f != "AttachmentFiles")
             rows = ctx.request.get(f"{ASSET_SITE}/_api/web/lists(guid'{ASSET_LIST}')/items?$top=5000"
                                    f"&$select={sel},AttachmentFiles&$expand=AttachmentFiles"
@@ -1448,7 +1479,7 @@ def refresh_signers():
         pg = page_for(ctx, site, port=port)
         try:
             if "sharepoint.com" not in pg.url:
-                pg.goto(site)
+                pg.goto(site, wait_until="domcontentloaded", timeout=90000)
             rows = ctx.request.get(f"{site}/_api/web/lists/getbytitle('DSR - Delivery Signature Register')/items"
                                    "?$top=5000&$select=SignedByName",
                                    headers={"Accept": "application/json;odata=nometadata"}).json()["value"]
