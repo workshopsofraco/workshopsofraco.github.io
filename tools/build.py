@@ -238,6 +238,17 @@ body:not(.editing) .mini:active,.acard:active,a.card:active,.bhd:active,.baysel 
 .draw{width:100%;height:100%;color:var(--deep)}
 .slot .draw{height:64px}
 /* shelf page */
+.hd .t{margin-left:auto;min-width:0}@media(max-width:480px){.hd h1{font-size:15px}.hd img{height:20px}}
+.gear{position:relative;margin-left:4px}.gear>summary{list-style:none;cursor:pointer;width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--deep);background:var(--panel)}
+.gear>summary::-webkit-details-marker,.gear .smenu>summary::-webkit-details-marker{display:none}
+.gear>summary:hover{box-shadow:var(--sh)}.gear[open]>summary{background:var(--deep);color:#fff}
+.gear .menu{position:absolute;right:0;top:46px;width:270px;max-width:calc(100vw - 32px);background:#fff;border-radius:14px;box-shadow:0 12px 32px rgba(5,18,51,.22);padding:8px;z-index:30}
+.gear .grp{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey);font-weight:700;padding:8px 10px 4px}
+.gear .menu a,.gear .smenu>summary{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:9px;color:var(--deep);text-decoration:none;font-weight:600;font-size:14px;cursor:pointer;list-style:none}
+.gear .menu a:hover,.gear .smenu>summary:hover{background:var(--panel)}
+.gear .smenu>summary::after{content:"›";color:var(--blue);transition:transform .15s}.gear .smenu[open]>summary::after{transform:rotate(90deg)}
+.gear .smenu a{padding-left:22px;font-weight:500;font-size:13px}.gear .smenu a small{color:var(--grey);font-weight:400}
+body:not(.editing) #editbtn{display:none}
 .nav{font-size:13px;color:var(--grey);margin:0 0 10px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
 .nav a{color:var(--grey);text-decoration:none}.nav a:hover{color:var(--blue);text-decoration:underline}.nav a.here{color:var(--blue);font-weight:700}.nav i{font-style:normal;opacity:.6}.nav b{color:var(--blue);font-weight:700}
 .back{display:inline-flex;align-items:center;gap:8px;background:var(--panel);color:var(--deep);border-radius:10px;padding:9px 14px;font-weight:600;font-size:14px;text-decoration:none;margin:4px 0 16px}
@@ -339,7 +350,7 @@ footer{max-width:1180px;margin:0 auto;padding:14px 16px 30px;border-top:1px soli
 """
 
 
-def page(title, h1, sub, body, depth, updated):
+def page(title, h1, sub, body, depth, updated, menu=""):
     up = "../" * depth
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -348,7 +359,7 @@ def page(title, h1, sub, body, depth, updated):
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>{CSS}</style></head><body>
-<header><div class="hd"><img src="{up}logo.png" alt="Sofraco"><div class="t"><h1>{esc(h1)}</h1><div class="sub mono">{esc(sub)}</div></div></div></header>
+<header><div class="hd"><img src="{up}logo.png" alt="Sofraco"><div class="t"><h1>{esc(h1)}</h1><div class="sub mono">{esc(sub)}</div></div>{menu}</div></header>
 <main>{body}</main>
 <footer><span>Sofraco Engineering Systems</span><span class="mono">Updated {updated}</span></footer>
 </body></html>"""
@@ -522,8 +533,6 @@ def shelf_body(loc, b, s, slots):
         body.append(f'<div class="acards">{"".join(acard(loc, it, "../") for it in its)}</div>' if its else '<div class="bfree">Free slot</div>')
         body.append('</section>')
     body.append('</div>')
-    if live(loc) and loc.get("asset_register"):   # Hugo 13/11/2026: layout changes are drag and drop on the cabinet page
-        body.append(f'<div data-editor-only hidden><a class="btn alt" href="../?edit=1#s{b}-{s}">Edit layout</a></div>')
     return "".join(body)
 
 
@@ -1134,7 +1143,7 @@ def build():
         os.makedirs(out, exist_ok=True)
         with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as f:
             f.write(page(loc["title"], loc["title"], loc["subtitle"],
-                         gated(loc, cabinet_body(loc, tree, unplaced, items) + downloads_html(loc)), 1, updated))
+                         gated(loc, cabinet_body(loc, tree, unplaced, items)), 1, updated, menu_html(loc, "../")))
         qr = {"cabinet": url_for(base, loc), "shelves": {}, "bays": {}}
         qdir = ldir(loc, "qr")
         if os.path.isdir(qdir):
@@ -1148,7 +1157,7 @@ def build():
                 with open(os.path.join(d, "index.html"), "w", encoding="utf-8") as f:
                     f.write(page(h1, f"Shelf {b}.{s}", loc["title"],
                                  gated(loc, shelf_body(loc, b, s, slots)),
-                                 2, updated).replace('src="img/', 'src="../img/'))
+                                 2, updated, menu_html(loc, "../../", f"#s{b}-{s}")).replace('src="img/', 'src="../img/'))
                 qr["shelves"][shelf_key(b, s)] = url_for(base, loc, b, s)
                 make_qr(qr["shelves"][shelf_key(b, s)], os.path.join(qdir, f"shelf-{shelf_slug(b, s)}.png"))
                 for p in slots:  # bay labels (Hugo 13/11/2026: C.S.P) open the bay page with every asset in it
@@ -1157,7 +1166,7 @@ def build():
                     with open(os.path.join(bd, "index.html"), "w", encoding="utf-8") as f:
                         f.write(page(f'{loc["title"]} · Bay {b}.{s}.{p}', f"Bay {b}.{s}.{p}", loc["title"],
                                      gated(loc, bay_body(loc, b, s, p, slots)),
-                                     2, updated).replace('src="img/', 'src="../img/'))
+                                     2, updated, menu_html(loc, "../../", f"#s{b}-{s}")).replace('src="img/', 'src="../img/'))
                     qr["bays"][f"{b}.{s}.{p}"] = url_for(base, loc, b, s, p)
                     make_qr(qr["bays"][f"{b}.{s}.{p}"], os.path.join(qdir, f"bay-{b}-{s}-{p}.png"))
         if loc.get("asset_register"):
@@ -1177,7 +1186,7 @@ def build():
                     with open(os.path.join(d, "index.html"), "w", encoding="utf-8") as f:
                         f.write(page(f'{it["ref"]} · {it["description"]}', it["ref"], loc["title"],
                                      gated(loc, asset_body(loc, it, it.get("_reg"), all_bays)),
-                                     3, updated).replace('src="img/', 'src="../../img/'))
+                                     3, updated, menu_html(loc, "../../../")).replace('src="img/', 'src="../../img/'))
         with open(ws(loc["qr_json"]), "w", encoding="utf-8") as f:
             json.dump(qr, f, indent=2)
         n = sum(1 for i in items if i.get("description"))
@@ -1226,6 +1235,41 @@ def make_pdfs():
         if loc.get("pdfs"):
             write_pdf_items(loc, load_items(loc))
             subprocess.run([sys.executable, os.path.join(TOOLS, loc["pdfs"])], check=True)
+
+
+GEAR_SVG = ('<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+            '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>')
+
+# Hugo 13/11/2026: editing and printing live behind a gear in the corner, grouped with sub-menus
+PRINT_GROUPS = [("Cabinet layout", [("A3 layout", "picture + register table", "lab_equipment_storage_a3.pdf")]),
+                ("Bay labels", [("Large", "14 per A4 · Avery L7073", "lab_equipment_storage_bay_labels_L7073.pdf"),
+                                ("Small", "65 per A4 · Avery L7651", "lab_equipment_storage_bay_labels_L7651.pdf")]),
+                ("Asset tags", [("Sticker sheet", "14 per A4 · Avery L7073", "lab_equipment_storage_asset_tags_L7073.pdf"),
+                                ("A3 sheet", "cut by hand", "lab_equipment_storage_asset_tags_A3.pdf")])]
+MENU_JS = ("<script>(function(){var g=document.querySelector('.gear');if(!g)return;"
+           "document.addEventListener('click',function(e){if(g.open&&!g.contains(e.target))g.open=false});"
+           "var e=document.getElementById('menuedit'),b=document.getElementById('editbtn');"
+           "if(e&&b)e.onclick=function(ev){ev.preventDefault();g.open=false;if(!document.body.classList.contains('editing'))b.click()}})()</script>")
+
+
+def menu_html(loc, up, edit_hash=""):
+    """up = path from this page to the site root."""
+    parts = []
+    if live(loc) and loc.get("asset_register"):
+        parts.append(f'<div data-editor-only hidden><div class="grp">Layout</div>'
+                     f'<a id="menuedit" href="{up}{loc["slug"]}/?edit=1{edit_hash}">Edit layout</a></div>')
+    if loc.get("pdfs"):
+        groups = []
+        for g, items in PRINT_GROUPS:
+            links = "".join(f'<a target="_blank" rel="noopener" href="{up}downloads/{f}">{esc(n)} <small>{esc(d)}</small></a>'
+                            for n, d, f in items if os.path.exists(os.path.join(SITE, "downloads", f)))
+            if links:
+                groups.append(f'<details class="smenu"><summary>{esc(g)}</summary>{links}</details>')
+        if groups:
+            parts.append('<div class="grp">Print</div>' + "".join(groups))
+    if not parts:
+        return ""
+    return f'<details class="gear"><summary aria-label="Menu" title="Menu">{GEAR_SVG}</summary><div class="menu">{"".join(parts)}</div></details>{MENU_JS}'
 
 
 def downloads_html(loc):
