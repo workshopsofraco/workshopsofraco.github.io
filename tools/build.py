@@ -278,7 +278,7 @@ body.pkopen{overflow:hidden}
 .rpic img{max-height:160px;max-width:90%;object-fit:contain}.rnm{font-weight:700;font-size:17px;margin-bottom:6px}.rdet .spec{margin:12px 0 4px}.rdet .btn{margin-top:8px}
 .pkmsg{padding:14px;color:var(--grey);font-size:13px;text-align:center}
 .regbar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 12px}.regbar #regq{flex:1 1 280px;margin:0}
-.regfold{margin:26px 0 0}.regfold>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:2px solid var(--deep);padding:0 0 8px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:600}.regfold>summary::-webkit-details-marker{display:none}.regfold>summary::after{content:'▾';color:var(--blue);font-size:14px;letter-spacing:0;transition:transform .15s}.regfold[open]>summary::after{transform:rotate(180deg)}.regfold>summary small{margin-left:auto;font-size:11px;letter-spacing:0;text-transform:none;color:var(--grey);font-weight:400}
+.regfold{margin:26px 0 0}.regfold+.regfold{margin-top:30px}.regfold>summary .sno{font-weight:600}.secmv button{font:inherit;font-size:11px;color:var(--blue);background:#fff;border:1px solid var(--blue);border-radius:6px;padding:2px 7px;margin-left:4px;cursor:pointer}.regfold>.bins{margin-top:14px}.regfold>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:2px solid var(--deep);padding:0 0 8px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:600}.regfold>summary::-webkit-details-marker{display:none}.regfold>summary::after{content:'▾';color:var(--blue);font-size:14px;letter-spacing:0;transition:transform .15s}.regfold[open]>summary::after{transform:rotate(180deg)}.regfold>summary small{margin-left:auto;font-size:11px;letter-spacing:0;text-transform:none;color:var(--grey);font-weight:400}
 .regpager{display:flex;justify-content:center;align-items:center;gap:12px;margin:12px 0;font-size:13px;color:var(--grey)}.regpager button{font:inherit;font-weight:700;color:var(--deep);background:#fff;border:0;border-radius:10px;padding:10px 14px;box-shadow:var(--sh);cursor:pointer}.regpager button:disabled{opacity:.35;cursor:default}
 .regbar select{font:inherit;font-size:15px;padding:10px;border:1px solid var(--rule);border-radius:10px;background:#fff}
 .reglist{background:#fff;border-radius:14px;box-shadow:var(--sh);padding:6px}.reglist .regrow+.regrow{border-top:1px solid #EEF2F7;border-radius:0}
@@ -479,7 +479,7 @@ def register_block(loc, items, up):
     return (f'<div id="regpage" data-loc="{esc(loc["title"])}" data-up="{up}" data-img="{up}img/">{has}<div class="regbar"><input id="regq" type="search" placeholder="Search number, description, make, model, serial, location…" autocomplete="off">'
             '<select id="regloc"><option value="">Any location</option></select>'
             '<select id="regcal"><option value="">Any calibration</option></select>'
-            '<select id="regper" title="Per page"><option value="25">25 per page</option><option value="50" selected>50 per page</option><option value="100">100 per page</option>'
+            '<select id="regper" title="Per page"><option value="10" selected>10 per page</option><option value="25">25 per page</option><option value="50">50 per page</option><option value="100">100 per page</option>'
             '<option value="200">200 per page</option><option value="all">All</option></select></div>'
             '<div id="reglist" class="reglist"></div><div id="regpager" class="regpager"></div></div>'
             f'<script>{REG_JS}</script>')
@@ -522,10 +522,47 @@ def cab_body(loc, b, shelves, tree):
     return "".join(body)
 
 
+SECS_JS = """
+(function(){var box=document.getElementById('secs');if(!box)return;var P=location.pathname,OK='sl-secorder:'+P,FK='sl-fold:'+P+':';
+function secs(){return [].slice.call(box.querySelectorAll(':scope>details[data-sec]'))}
+function number(){secs().forEach(function(d,i){d.querySelector('.sno').textContent=('0'+(i+1)).slice(-2)})}
+try{var o=JSON.parse(localStorage.getItem(OK)||'null');if(o)o.forEach(function(id){var d=document.getElementById(id);if(d)box.appendChild(d)})}catch(e){}
+secs().forEach(function(d){try{var f=localStorage.getItem(FK+d.id);if(f!==null)d.open=f==='1'}catch(e){}
+  d.addEventListener('toggle',function(){try{localStorage.setItem(FK+d.id,d.open?'1':'0')}catch(e){}})});
+number();
+box.addEventListener('click',function(e){var b=e.target.closest('button[data-mv]');if(!b)return;e.preventDefault();e.stopPropagation();
+  var d=b.closest('details'),list=secs(),i=list.indexOf(d),j=i+(+b.dataset.mv);if(j<0||j>=list.length)return;
+  if(+b.dataset.mv<0)box.insertBefore(d,list[j]);else box.insertBefore(list[j],d);number();
+  try{localStorage.setItem(OK,JSON.stringify(secs().map(function(x){return x.id})))}catch(e){}},true);
+// editing opens the layout
+new MutationObserver(function(){if(document.body.classList.contains('editing')){var l=document.getElementById('sec-layout');if(l)l.open=true}})
+  .observe(document.body,{attributes:true,attributeFilter:['class']});
+})();
+"""
+
+
+def fold(sec_id, title, note, inner, is_open):
+    """A section that folds up; in edit mode ▲ ▼ move it (Hugo 13/11/2026)."""
+    return (f'<details class="regfold" id="{sec_id}" data-sec{" open" if is_open else ""}><summary><span class="mono"><b class="sno">01</b> / {title}</span>'
+            f'<span class="secmv ed"><button type="button" data-mv="-1" title="Move up">▲</button><button type="button" data-mv="1" title="Move down">▼</button></span>'
+            f'<small{note}</small></summary>{inner}</details>')
+
+
 def cabinet_body(loc, tree, unplaced, items):
     n_items = sum(1 for i in items if i.get("description"))
     body = []
-    if tree:
+    if tree and live(loc) and loc.get("asset_register"):
+        # Hugo 13/11/2026: layout and register both fold up; their order is changed in edit mode
+        lay = (f'<div class="bins" id="layout" style="--n:{len(tree)}">' + "".join(cabinet_section(loc, b, sh, "") for b, sh in tree.items()) + '</div>')
+        body.append(EDITBAR)
+        body.append('<div id="secs">' +
+                    fold("sec-layout", "Layout", f'>{len(tree)} {loc["unit_word"].lower()}s · {n_items} items', lay, True) +
+                    fold("sec-register", "Asset register", ' id="regcount">AM-R055 · tap to search every asset', register_block(loc, items, ""), False) +
+                    f'</div><script>{SECS_JS}</script><script>{EDIT_JS}</script>')
+        tree_done = True
+    else:
+        tree_done = False
+    if tree and not tree_done:
         body.append(f'<div class="sec"><h2 class="mono">01 / Layout</h2><span class="mono">{len(tree)} {loc["unit_word"].lower()}s · {n_items} items</span></div>')
         if live(loc) and loc.get("asset_register"):
             body.append(EDITBAR)
@@ -538,12 +575,7 @@ def cabinet_body(loc, tree, unplaced, items):
         body.append('<div class="note">These items are on the list but have no shelf position yet. '
                     'Once each one is given a position (bay.shelf.slot) it appears on the layout above and on its shelf page.</div>')
         body.append(register_table(loc, unplaced, link=False))
-    if tree and live(loc) and loc.get("asset_register"):
-        body.append(f'<script>{EDIT_JS}</script>')
-    if tree and live(loc) and loc.get("asset_register"):   # Hugo 13/11/2026: the whole register, folded up, loads when opened
-        body.append(f'<details class="regfold"><summary><span class="mono">{"03" if unplaced else "02"} / Asset register</span>'
-                    f'<small id="regcount">AM-R055 · tap to search every asset</small></summary>{register_block(loc, items, "")}</details>')
-    elif tree:
+    if tree and not tree_done:
         placed = [i for i in items if i.get("bin_location") and i.get("description")]
         body.append(f'<div class="sec"><h2 class="mono">{"03" if unplaced else "02"} / Register</h2><span class="mono">{len(placed)} rows</span></div>')
         body.append(register_table(loc, placed, link=True))
@@ -845,7 +877,7 @@ GATE_SCREEN = ('<div id="gatescreen" class="mv" hidden><div class="mvmsg">Sofrac
 
 FRESH_JS = """
 (function(){var f=document.getElementById('fresh');if(!f)return;var g=f.dataset.gen,src=f.dataset.src,bv=f.dataset.build,vsrc=f.dataset.ver,busy=false;
-function go(v){var k='sl-fresh:'+location.pathname;try{if(sessionStorage.getItem(k)===String(v))return;sessionStorage.setItem(k,String(v))}catch(e){return}   // once per version: never a reload loop
+function go(v){var k='sl-fresh:'+location.pathname,now=Date.now();try{if(now-(+sessionStorage.getItem(k)||0)<60000)return;sessionStorage.setItem(k,String(now))}catch(e){return}   // at most one self-reload a minute: never a loop
   busy=true;var u=new URL(location.href);u.searchParams.set('v',v);location.replace(u.toString())}
 function check(){if(busy||window.SLediting||document.querySelector('.ghost'))return;
   fetch(src+'?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
