@@ -271,12 +271,15 @@ body.pkopen{overflow:hidden}
 .pkrow,.regrow{display:grid;grid-template-columns:auto 1fr;column-gap:10px;row-gap:2px;width:100%;text-align:left;border:0;background:#fff;border-radius:10px;padding:10px;cursor:pointer;font:inherit;color:inherit;text-decoration:none}
 .pkrow:hover,a.regrow:hover{background:var(--panel)}.pkrow.off{opacity:.45;cursor:default}
 .pkrow .am,.regrow .am{color:var(--blue);font-weight:700;font-size:13px;grid-row:span 3}
+.regrow{grid-template-columns:64px 1fr}.regrow .th{grid-row:1/span 5;width:64px;height:64px;border-radius:10px;background:var(--panel);display:flex;align-items:center;justify-content:center;overflow:hidden}.regrow .th img{max-width:58px;max-height:58px;object-fit:contain}.regrow .am{grid-row:auto}.regrow>span:not(.th),.regrow .badge{grid-column:2}
 .pkrow .nm,.regrow .nm{font-weight:600;font-size:14px}.pkrow .mk,.regrow .mk,.pkrow .wh,.regrow .wh{font-size:12px;color:var(--grey)}
 .regrow .badge{grid-column:2;justify-self:start;font-size:11px;margin-top:3px}.regrow.nolink{cursor:default}
 .regbox{max-width:480px}.rdet{overflow-y:auto;padding:0 16px 16px}.rpic{background:var(--panel);border-radius:12px;height:180px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
 .rpic img{max-height:160px;max-width:90%;object-fit:contain}.rnm{font-weight:700;font-size:17px;margin-bottom:6px}.rdet .spec{margin:12px 0 4px}.rdet .btn{margin-top:8px}
 .pkmsg{padding:14px;color:var(--grey);font-size:13px;text-align:center}
 .regbar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 12px}.regbar #regq{flex:1 1 280px;margin:0}
+.regfold{margin:26px 0 0}.regfold>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:2px solid var(--deep);padding:0 0 8px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:600}.regfold>summary::-webkit-details-marker{display:none}.regfold>summary::after{content:'▾';color:var(--blue);font-size:14px;letter-spacing:0;transition:transform .15s}.regfold[open]>summary::after{transform:rotate(180deg)}.regfold>summary small{margin-left:auto;font-size:11px;letter-spacing:0;text-transform:none;color:var(--grey);font-weight:400}
+.regpager{display:flex;justify-content:center;align-items:center;gap:12px;margin:12px 0;font-size:13px;color:var(--grey)}.regpager button{font:inherit;font-weight:700;color:var(--deep);background:#fff;border:0;border-radius:10px;padding:10px 14px;box-shadow:var(--sh);cursor:pointer}.regpager button:disabled{opacity:.35;cursor:default}
 .regbar select{font:inherit;font-size:15px;padding:10px;border:1px solid var(--rule);border-radius:10px;background:#fff}
 .reglist{background:#fff;border-radius:14px;box-shadow:var(--sh);padding:6px}.reglist .regrow+.regrow{border-top:1px solid #EEF2F7;border-radius:0}
 .ttl .big:not(.mono){font-size:32px}
@@ -424,22 +427,32 @@ EDITBAR = ('<div data-editor-only hidden><div class="editbar"><button id="editbt
 
 REG_JS = """
 (function(){var box=document.getElementById('reglist'),q=document.getElementById('regq'),fl=document.getElementById('regloc'),fc=document.getElementById('regcal'),
-  cnt=document.getElementById('regcount'),here=document.getElementById('regpage').dataset.loc,all=[],pages={};
+  fw=document.getElementById('regwh'),ps=document.getElementById('regper'),pager=document.getElementById('regpager'),pageNo=0,
+  cnt=document.getElementById('regcount'),RP=document.getElementById('regpage'),here=RP.dataset.loc,UP=RP.dataset.up||'',ROOT=UP+'../',all=[],pages={};
 [].forEach.call(document.querySelectorAll('#regpage [data-has]'),function(e){pages[e.dataset.has]=1});
 function e2(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function badge(cs){if(!cs)return '';var k={'Calibrated':'ok','Out of Calibration':'bad'}[cs]||'';return '<span class="badge '+k+'">'+e2(cs==='Not Required'?'No Cal Required':cs)+'</span>'}
 function opts(sel,vals,first){var cur=sel.value;sel.innerHTML='<option value="">'+first+'</option>'+vals.map(function(v){return '<option>'+e2(v)+'</option>'}).join('');sel.value=cur}
 function uniq(f){var s={};all.forEach(function(a){if(a[f])s[a[f]]=1});return Object.keys(s).sort()}
-function draw(){var r=SL.match(all,q.value).filter(function(a){return(!fl.value||a.StorageLocation===fl.value)&&(!fc.value||a.CalibrationStatus===fc.value)});
-  cnt.textContent=r.length+' of '+all.length+' assets';var shown=r.slice(0,200);
+function draw(keep){if(!keep)pageNo=0;
+  var r=SL.match(all,q.value).filter(function(a){return(!fl.value||a.StorageLocation===fl.value)&&(!fw.value||a.Whereabouts===fw.value)&&(!fc.value||a.CalibrationStatus===fc.value)});
+  var per=ps.value==='all'?r.length||1:+ps.value,pages=Math.max(1,Math.ceil(r.length/per));if(pageNo>=pages)pageNo=pages-1;
+  var from=pageNo*per,shown=r.slice(from,from+per);
+  cnt.textContent=(r.length?(from+1)+'-'+(from+shown.length)+' of ':'0 of ')+r.length+' active assets';
+  pager.innerHTML=pages>1?'<button type="button" data-p="-1"'+(pageNo?'':' disabled')+'>‹ Previous</button><span>Page '+(pageNo+1)+' of '+pages+'</span><button type="button" data-p="1"'+(pageNo<pages-1?'':' disabled')+'>Next ›</button>':'';
   box.innerHTML=shown.map(function(a){var tag='button';
-    return '<'+tag+' type="button" class="regrow" data-a="'+e2(a.AssetNumber)+'"><span class="am mono">'+e2(a.AssetNumber)+'</span>'+
+    return '<'+tag+' type="button" class="regrow" data-a="'+e2(a.AssetNumber)+'"><span class="th"><img loading="lazy" alt="" src="'+ROOT+'thumbs/'+e2(a.AssetNumber)+'.webp" onerror="this.remove()"></span><span class="am mono">'+e2(a.AssetNumber)+'</span>'+
       '<span class="nm">'+e2(a.Desc2)+'</span><span class="mk">'+e2([a.Make,a.Model].filter(Boolean).join(' · '))+(a.SerialNo?' · S/N '+e2(a.SerialNo):'')+'</span>'+
-      '<span class="wh">'+e2(SL.where(a)||'No storage location')+(a.EquipmentStatus&&a.EquipmentStatus!=='Active'?' · '+e2(a.EquipmentStatus):'')+'</span>'+badge(a.CalibrationStatus)+'</'+tag+'>'}).join('')+
-    (r.length>shown.length?'<div class="pkmsg">Showing the first 200 - search to narrow it down.</div>':'')+(r.length?'':'<div class="pkmsg">Nothing matches.</div>')}
-SL.ready.then(function(ok){if(!ok)return;SL.register().then(function(a){all=a;opts(fl,uniq('StorageLocation'),'Every location');opts(fc,uniq('CalibrationStatus'),'Any calibration');
-  if(!fl.value&&here&&uniq('StorageLocation').indexOf(here)<0)fl.value='';draw()}).catch(function(){box.innerHTML='<div class="pkmsg">Could not load the register. Try again in a moment.</div>'})});
-q.addEventListener('input',draw);fl.addEventListener('change',draw);fc.addEventListener('change',draw);
+      '<span class="wh">'+e2(SL.where(a)||'No storage location')+'</span>'+badge(a.CalibrationStatus)+'</'+tag+'>'}).join('')+
+    (r.length?'':'<div class="pkmsg">Nothing matches.</div>')}
+pager.addEventListener('click',function(e){var b=e.target.closest('button[data-p]');if(!b||b.disabled)return;pageNo+=+b.dataset.p;draw(true);RP.scrollIntoView({block:'start'})});
+ps.addEventListener('change',function(){draw()});fw.addEventListener('change',function(){draw()});
+// on the location page it sits folded up and loads only when opened (Hugo 13/11/2026)
+var fold=RP.closest('details'),started=false;
+function start(){if(started)return;started=true;SL.ready.then(function(ok){if(!ok)return;SL.register().then(function(a){all=a.filter(function(x){return x.EquipmentStatus==='Active'});opts(fl,uniq('StorageLocation'),'Every storage location');opts(fw,uniq('Whereabouts'),'Any whereabouts');opts(fc,uniq('CalibrationStatus'),'Any calibration');
+  if(!fl.value&&here&&uniq('StorageLocation').indexOf(here)<0)fl.value='';draw()}).catch(function(){started=false;box.innerHTML='<div class="pkmsg">Could not load the register. Try again in a moment.</div>'})})}
+if(fold){fold.addEventListener('toggle',function(){if(fold.open){start();setTimeout(function(){q.focus()},50)}});if(fold.open)start()}else start();
+q.addEventListener('input',function(){draw()});fl.addEventListener('change',function(){draw()});fc.addEventListener('change',function(){draw()});
 // Hugo 13/11/2026: a row opens the asset's details here, without leaving the register
 var IMG=document.getElementById('regpage').dataset.img,RAW='https://raw.githubusercontent.com/workshopsofraco/workshopsofraco.github.io/main/data/images/';
 function row(k,v){return v?'<dt>'+k+'</dt><dd>'+e2(v)+'</dd>':''}
@@ -449,10 +462,10 @@ function show(A){var a=all.filter(function(x){return x.AssetNumber===A})[0];if(!
     '<div class="rdet"><div class="rpic"><img alt="" src="'+IMG+e2(A)+'_OEM.webp"></div><div class="rnm">'+e2(a.Desc2)+'</div>'+badge(a.CalibrationStatus)+
     '<dl class="spec">'+row('Make',a.Make)+row('Model',a.Model)+row('Serial',a.SerialNo)+row('Category',a.Category)+row('Status',a.EquipmentStatus)+
     row('Stored at',[a.StorageLocation,a.StorageBay].filter(Boolean).join(' · '))+row('Whereabouts',a.Whereabouts)+'</dl>'+
-    (pages[A]?'<a class="btn alt" href="../asset/'+e2(A)+'/">Open asset page (send, deliver, certificate)</a>':'')+
-    (bay?'<a class="btn alt" href="../'+bay.replace(/\\./g,'-')+'/">Open bay '+e2(bay)+'</a>':'')+'</div></div>';
+    (pages[A]?'<a class="btn alt" href="'+UP+'asset/'+e2(A)+'/">Open asset page (send, deliver, certificate)</a>':'')+
+    (bay?'<a class="btn alt" href="'+UP+bay.replace(/\\./g,'-')+'/">Open bay '+e2(bay)+'</a>':'')+'</div></div>';
   document.body.appendChild(m);document.body.classList.add('pkopen');
-  var img=m.querySelector('.rpic img'),n=0;img.onerror=function(){n++;if(n===1)img.src=RAW+A+'_OEM.webp';else if(n===2)img.src=RAW+A+'_OEM.png';else img.remove()};
+  var img=m.querySelector('.rpic img'),n=0;img.onerror=function(){n++;if(n===1)img.src=ROOT+'thumbs/'+A+'.webp';else img.remove()};
   function close(){m.remove();document.body.classList.remove('pkopen')}
   m.addEventListener('click',function(e){if(e.target===m||e.target.closest('.pkx'))close()});
   SL.post({action:'status',asset:A}).then(function(r){if(r&&r.photo){var i=m.querySelector('.rpic img');if(!i){i=document.createElement('img');m.querySelector('.rpic').appendChild(i)}i.onerror=null;i.src=r.photo}}).catch(function(){})}
@@ -462,15 +475,22 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=docum
 """
 
 
-def register_body(loc, items):
+def register_block(loc, items, up):
+    """The searchable register. up = path from this page to the location page."""
     has = "".join(f'<i hidden data-has="{esc(i["ref"])}"></i>' for i in items if i.get("ref") and i.get("bin_location"))
+    return (f'<div id="regpage" data-loc="{esc(loc["title"])}" data-up="{up}" data-img="{up}img/">{has}<div class="regbar"><input id="regq" type="search" placeholder="Search number, description, make, model, serial, location…" autocomplete="off">'
+            '<select id="regloc"><option value="">Every storage location</option></select><select id="regwh"><option value="">Any whereabouts</option></select>'
+            '<select id="regcal"><option value="">Any calibration</option></select>'
+            '<select id="regper" title="Per page"><option value="25">25 per page</option><option value="50" selected>50 per page</option><option value="100">100 per page</option>'
+            '<option value="200">200 per page</option><option value="all">All</option></select></div>'
+            '<div id="reglist" class="reglist"></div><div id="regpager" class="regpager"></div></div>'
+            f'<script>{REG_JS}</script>')
+
+
+def register_body(loc, items):
     return (nav(loc, "../", [("Asset register", "./")]) +
             '<div class="ttl"><div class="k">AM-R055</div><div class="big">Asset register</div>'
-            '<div class="meta" id="regcount">Loading…</div></div>'
-            f'<div id="regpage" data-loc="{esc(loc["title"])}" data-img="../img/">{has}<div class="regbar"><input id="regq" type="search" placeholder="Search number, description, make, model, serial, location…" autocomplete="off">'
-            '<select id="regloc"><option value="">Every location</option></select><select id="regcal"><option value="">Any calibration</option></select></div>'
-            '<div id="reglist" class="reglist"></div></div>'
-            f'<script>{REG_JS}</script>')
+            '<div class="meta" id="regcount">Loading…</div></div>' + register_block(loc, items, "../"))
 
 
 def cabinet_section(loc, b, shelves, up):
@@ -522,7 +542,10 @@ def cabinet_body(loc, tree, unplaced, items):
         body.append(register_table(loc, unplaced, link=False))
     if tree and live(loc) and loc.get("asset_register"):
         body.append(f'<script>{EDIT_JS}</script>')
-    if tree:
+    if tree and live(loc) and loc.get("asset_register"):   # Hugo 13/11/2026: the whole register, folded up, loads when opened
+        body.append(f'<details class="regfold"><summary><span class="mono">{"03" if unplaced else "02"} / Asset register</span>'
+                    f'<small id="regcount">AM-R055 · tap to search every asset</small></summary>{register_block(loc, items, "")}</details>')
+    elif tree:
         placed = [i for i in items if i.get("bin_location") and i.get("description")]
         body.append(f'<div class="sec"><h2 class="mono">{"03" if unplaced else "02"} / Register</h2><span class="mono">{len(placed)} rows</span></div>')
         body.append(register_table(loc, placed, link=True))
@@ -1391,6 +1414,8 @@ def build():
                          f'a.initialize().then(function(){{return a.handleRedirectPromise()}}).then(function(r){{'
                          f'if(!r)location.replace({json.dumps(base)})}});</script>', 1, updated)
                     .replace('href="../logo.png"', 'href="../logo.png"'))
+    if os.path.isdir(THUMBS):   # register list photos, served at /thumbs/<AM>.webp
+        shutil.copytree(THUMBS, os.path.join(SITE, "thumbs"), dirs_exist_ok=True)
     with open(os.path.join(SITE, "version.json"), "w", encoding="utf-8") as f:
         json.dump({"build": BUILD_ID}, f)
     with open(os.path.join(SITE, "index.html"), "w", encoding="utf-8") as f:
@@ -1519,6 +1544,7 @@ ASSET_FIELDS = ["AssetNumber", "StorageBay", "Desc2", "Make", "Model", "SerialNo
                 "Calibration_x002f_InspectionDate", "DueDate", "CertifyingOrganisation",
                 "RequirementFrequency_x002a_month", "Link", "AttachmentFiles"]  # never prices or contacts
 ASSET_PHOTOS = os.path.join(os.environ.get("USERPROFILE", ""), r"SOFRACO\Assets - AM\01. Assets")
+THUMBS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "thumbs")
 
 
 def refresh_layouts():
@@ -1579,6 +1605,26 @@ def refresh_layouts():
             json.dump(lay, f, indent=1)
         print(f'{loc["slug"]}: {len(assets)} assets, {len(lay["bays"])} bays, '
               f'{sum(1 for a in assets if a["transit"])} in transit')
+    make_thumbs()
+
+
+def make_thumbs():
+    """Small photo of every asset that has a register photo ({AM}_OEM.png in its folder), for the register list (Hugo 13/11/2026)."""
+    from PIL import Image
+    os.makedirs(THUMBS, exist_ok=True)
+    n = 0
+    for am in os.listdir(ASSET_PHOTOS) if os.path.isdir(ASSET_PHOTOS) else []:
+        src = os.path.join(ASSET_PHOTOS, am, am + "_OEM.png")
+        dst = os.path.join(THUMBS, am.upper() + ".webp")
+        if os.path.exists(src) and (not os.path.exists(dst) or os.path.getmtime(dst) < os.path.getmtime(src)):
+            try:
+                im = Image.open(src).convert("RGBA")
+                im.thumbnail((360, 360))
+                im.save(dst, "WEBP", quality=72, method=6)
+                n += 1
+            except Exception as e:
+                print("thumb failed", am, e)
+    print(f"thumbs: {n} new, {len(os.listdir(THUMBS))} in all")
 
 
 def refresh_signers():
